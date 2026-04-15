@@ -1,10 +1,19 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
+  "env": {
+    "VITE_FIREBASE_API_KEY": "@vite_firebase_api_key",
+    "VITE_FIREBASE_AUTH_DOMAIN": "@vite_firebase_auth_domain",
+    "VITE_FIREBASE_PROJECT_ID": "@vite_firebase_project_id",
+    "VITE_FIREBASE_STORAGE_BUCKET": "@vite_firebase_storage_bucket",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": "@vite_firebase_messaging_sender_id",
+    "VITE_FIREBASE_APP_ID": "@vite_firebase_app_id",
+    "VITE_GOOGLE_SHEETS_ID": "@vite_google_sheets_id"
+  },
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(?!.*\.(js|css|jpg|jpeg|png|gif|ico|svg|woff|woff2)$).*",
+      "dest": "/index.html"
     }
   ]
 }
