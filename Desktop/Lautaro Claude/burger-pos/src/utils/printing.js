@@ -1,3 +1,4 @@
+
 function formatPaymentMethod(method) {
   const map = {
     efectivo: 'Efectivo',
@@ -18,10 +19,36 @@ export function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const CSS = `
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 80mm; font-family: 'Courier New', monospace; font-size: 12px; color: #000; background: #fff; }
-  .ticket { width: 100%; padding: 4mm 2mm; }
+// CSS base sin altura fija — la altura se inyecta dinámicamente después de medir el DOM
+const CSS_BASE = `
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 302px !important;
+    max-width: 302px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    color: #000;
+    background: white !important;
+  }
+  .ticket {
+    width: 272px !important;
+    max-width: 272px !important;
+    margin: 0 auto !important;
+    padding: 4px 4px 0 4px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    color: black;
+    background: white;
+  }
   .center { text-align: center; }
   .title { font-size: 18px; font-weight: bold; text-align: center; margin: 4px 0; letter-spacing: 2px; }
   .subtitle { font-size: 13px; font-weight: bold; text-align: center; margin: 2px 0; }
@@ -34,7 +61,6 @@ const CSS = `
   .section-title { font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 3px; margin: 4px 0; }
   @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    html, body { margin: 0; padding: 0; width: 80mm; }
   }
 `;
 
@@ -131,7 +157,7 @@ function buildSingleTicketHtml(order, type) {
 
   return `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><style>${CSS}</style></head>
+<head><meta charset="UTF-8"><style>${CSS_BASE}</style></head>
 <body>
 ${body}
 </body>
@@ -141,7 +167,8 @@ ${body}
 function printViaIframe(html) {
   return new Promise((resolve) => {
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+    // Visible pero fuera de pantalla con ancho real (302px ≈ 80mm a 96dpi)
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:0;width:302px;height:auto;border:none;visibility:hidden;';
     document.body.appendChild(iframe);
 
     const blob = new Blob([html], { type: 'text/html' });
@@ -149,15 +176,34 @@ function printViaIframe(html) {
 
     iframe.onload = () => {
       try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+        const doc = iframe.contentDocument;
+        const win = iframe.contentWindow;
+
+        // Medir alto real del contenido
+        const bodyHeight = doc.body.scrollHeight;
+        const PX_PER_MM = 96 / 25.4;
+        const heightMm = Math.ceil(bodyHeight / PX_PER_MM) + 4; // +4mm margen seguro
+        const finalHeightMm = Math.min(Math.max(heightMm, 45), 200);
+
+        console.log('Ticket print size (medido):', { bodyHeight, heightMm, finalHeightMm });
+
+        // Inyectar @page con el alto medido
+        const style = doc.createElement('style');
+        style.textContent = `
+          @page { size: 80mm ${finalHeightMm}mm portrait; margin: 0; }
+          html, body { height: ${finalHeightMm}mm !important; overflow: hidden !important; }
+        `;
+        doc.head.appendChild(style);
+
+        win.focus();
+        win.print();
       } catch (e) {
         console.warn('printViaIframe error:', e);
       }
       setTimeout(() => {
         document.body.removeChild(iframe);
         resolve();
-      }, 1000);
+      }, 1500);
     };
   });
 }
