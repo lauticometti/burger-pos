@@ -67,7 +67,10 @@ const CSS_BASE = `
 const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple'];
 
 function itemDisplayName(item) {
-  if (item.cartId) return `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}`;
+  if (item.cartId) {
+    const base = `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}`;
+    return item.noCheddar ? `${base} (sin cheddar)` : base;
+  }
   return item.name;
 }
 

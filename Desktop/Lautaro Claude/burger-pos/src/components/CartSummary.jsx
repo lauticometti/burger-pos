@@ -8,7 +8,8 @@ function burgerLineTotal(item) {
 }
 
 function burgerDisplayName(item) {
-  return `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}`
+  const base = `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}`
+  return item.noCheddar ? `${base} (sin cheddar)` : base
 }
 
 export function CartSummary({ cart, setCart }) {
@@ -47,6 +48,29 @@ export function CartSummary({ cart, setCart }) {
       const next = (item.qty || 1) + delta
       if (next <= 0) return prev.filter(i => i.cartId !== cartId)
       return prev.map(i => i.cartId === cartId ? { ...i, qty: next } : i)
+    })
+  }
+
+  const handleBurgerCheddar = (cartId) => {
+    setCart(prev => {
+      const item = prev.find(i => i.cartId === cartId)
+      if (!item) return prev
+      const nextNoCheddar = !item.noCheddar
+
+      // Reducir qty origen en 1 (eliminar si queda en 0)
+      const afterRemove = prev
+        .map(i => i.cartId !== cartId ? i : i.qty > 1 ? { ...i, qty: i.qty - 1 } : null)
+        .filter(Boolean)
+
+      // Buscar grupo destino con mismo meatCount y mismo noCheddar objetivo
+      const dest = afterRemove.find(i => i.cartId && i.meatCount === item.meatCount && !!i.noCheddar === nextNoCheddar)
+      if (dest) {
+        return afterRemove.map(i => i.cartId === dest.cartId ? { ...i, qty: i.qty + 1 } : i)
+      }
+      return [
+        ...afterRemove,
+        { ...item, cartId: `burger-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, noCheddar: nextNoCheddar, qty: 1 }
+      ]
     })
   }
 
@@ -186,6 +210,24 @@ export function CartSummary({ cart, setCart }) {
                         {item.qty || 1}
                       </span>
                       {qtyBtn(() => handleBurgerQty(item.cartId, +1), '+', 'var(--y)')}
+                    </div>
+                    <div style={{ marginTop: '8px' }}>
+                      <button
+                        onClick={() => handleBurgerCheddar(item.cartId)}
+                        style={{
+                          fontSize: '11px',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          background: item.noCheddar ? 'rgba(255,49,49,0.15)' : 'rgba(255,255,255,0.05)',
+                          color: item.noCheddar ? 'var(--r)' : 'var(--muted)',
+                          borderColor: item.noCheddar ? 'rgba(255,49,49,0.4)' : 'rgba(255,255,255,0.1)',
+                        }}
+                      >
+                        {item.noCheddar ? '✕ sin cheddar' : 'sin cheddar'}
+                      </button>
                     </div>
                   </div>
 
