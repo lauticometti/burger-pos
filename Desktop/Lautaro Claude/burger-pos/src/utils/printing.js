@@ -3,7 +3,9 @@ function formatPaymentMethod(method) {
   const map = {
     efectivo: 'Efectivo',
     transferencia: 'Transferencia',
-    mercado_pago: 'Mercado Pago',
+    miti_miti: 'Miti miti',
+    cta_cte: 'Cta cte',
+    canje: 'Canje',
     otro: 'Otro',
   };
   return map[method] || method;

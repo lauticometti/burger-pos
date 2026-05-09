@@ -55,7 +55,7 @@ export function OrderForm({ cart, onSave }) {
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('efectivo')
   const [paymentStatus, setPaymentStatus] = useState('pagado')
-  const [orderType, setOrderType] = useState('retiro')
+  const [orderType, setOrderType] = useState('local')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -95,7 +95,7 @@ export function OrderForm({ cart, onSave }) {
       setNotes('')
       setPaymentMethod('efectivo')
       setPaymentStatus('pagado')
-      setOrderType('retiro')
+      setOrderType('local')
     } catch (err) {
       console.error("Error en OrderForm submit:", err)
       alert(`Error guardando pedido: ${err.message || err}`)
@@ -170,7 +170,9 @@ export function OrderForm({ cart, onSave }) {
             options={[
               { value: 'efectivo', label: 'Efectivo' },
               { value: 'transferencia', label: 'Transferencia' },
-              { value: 'mercado_pago', label: 'Mercado Pago' },
+              { value: 'miti_miti', label: 'Miti miti' },
+              { value: 'cta_cte', label: 'Cta cte' },
+              { value: 'canje', label: 'Canje' },
               { value: 'otro', label: 'Otro' },
             ]}
           />
@@ -190,8 +192,8 @@ export function OrderForm({ cart, onSave }) {
             value={orderType}
             onChange={setOrderType}
             options={[
-              { value: 'retiro', label: 'Retiro' },
               { value: 'local', label: 'Local' },
+              { value: 'retiro', label: 'Retiro' },
               { value: 'delivery', label: 'Delivery' },
             ]}
           />

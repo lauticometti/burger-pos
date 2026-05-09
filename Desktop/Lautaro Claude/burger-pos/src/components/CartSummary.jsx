@@ -137,86 +137,121 @@ export function CartSummary({ cart, setCart }) {
     </button>
   )
 
+  // Mini síntesis
+  const totalUnidades = cart.reduce((s, i) => s + (i.qty || 1), 0)
+  const totalLineas = cart.length
+
   return (
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg)',
       padding: '24px 16px',
-      paddingBottom: '140px'
+      paddingBottom: '160px'
     }}>
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
         <h1 style={{
           fontSize: '40px',
           fontWeight: 'bold',
           textAlign: 'center',
-          marginBottom: '24px',
+          marginBottom: '12px',
           color: 'var(--text)'
         }}>
           Pedido
         </h1>
 
+        {/* Síntesis rápida */}
+        <div style={{
+          background: 'rgba(255,198,42,0.08)',
+          border: '1px solid rgba(255,198,42,0.2)',
+          borderRadius: 'var(--radius)',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontSize: '14px', color: 'var(--muted)' }}>
+            {totalLineas} {totalLineas === 1 ? 'producto' : 'productos'} · {totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'}
+          </span>
+          <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--y)' }}>
+            ${total.toLocaleString()}
+          </span>
+        </div>
+
         <div style={{
           background: 'var(--panel)',
           borderRadius: 'var(--radius)',
           boxShadow: 'var(--shadow)',
-          padding: '24px',
+          padding: '16px',
           marginBottom: '24px'
         }}>
 
           {sortedCart.map(item => {
-            // Burger individual
+            // Burger
             if (item.cartId) {
               const lt = burgerLineTotal(item)
+              const qty = item.qty || 1
               return (
                 <div key={item.cartId} style={{
-                  display: 'flex',
-                  alignItems: 'stretch',
-                  justifyContent: 'space-between',
-                  padding: '16px 0',
+                  padding: '14px 0',
                   borderBottom: '1px solid var(--line)',
-                  gap: '12px',
                 }}>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' }}>
-                      {burgerDisplayName(item)}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)', width: '60px' }}>Carnes:</span>
-                      {qtyBtn(() => handleBurgerMeat(item.cartId, -1), '−', 'var(--r)')}
-                      <span style={{
-                        width: '20px',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '16px',
-                        color: 'var(--text)',
-                      }}>
-                        {item.meatCount}
+                  {/* Fila principal: cantidad+nombre | precio + eliminar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text)', lineHeight: 1.2 }}>
+                      {qty}x {burgerDisplayName(item)}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--y)' }}>
+                        ${lt.toLocaleString()}
                       </span>
-                      {qtyBtn(() => handleBurgerMeat(item.cartId, +1), '+', item.meatCount >= 6 ? '#444' : 'var(--y)')}
-                      {item.meatCount >= 6 && (
-                        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>máx</span>
-                      )}
+                      <button
+                        onClick={() => handleRemoveBurger(item.cartId)}
+                        style={{
+                          background: 'rgba(255,49,49,0.15)',
+                          color: 'var(--r)',
+                          border: '1px solid rgba(255,49,49,0.3)',
+                          borderRadius: '8px',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ×
+                      </button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)', width: '60px' }}>Cantidad:</span>
+                  </div>
+                  {/* Info secundaria */}
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                    {item.meatCount} {item.meatCount === 1 ? 'carne' : 'carnes'} c/u{item.noCheddar ? ' · sin cheddar' : ''}
+                  </div>
+                  {/* Controles */}
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--muted)', width: '90px' }}>Cantidad</span>
                       {qtyBtn(() => handleBurgerQty(item.cartId, -1), '−', 'var(--r)')}
-                      <span style={{
-                        width: '20px',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '16px',
-                        color: 'var(--text)',
-                      }}>
-                        {item.qty || 1}
+                      <span style={{ width: '24px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', color: 'var(--text)' }}>
+                        {qty}
                       </span>
                       {qtyBtn(() => handleBurgerQty(item.cartId, +1), '+', 'var(--y)')}
                     </div>
-                    <div style={{ marginTop: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--muted)', width: '90px' }}>Carnes c/u</span>
+                      {qtyBtn(() => handleBurgerMeat(item.cartId, -1), '−', 'var(--r)')}
+                      <span style={{ width: '24px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', color: 'var(--text)' }}>
+                        {item.meatCount}
+                      </span>
+                      {qtyBtn(() => handleBurgerMeat(item.cartId, +1), '+', item.meatCount >= 6 ? '#444' : 'var(--y)')}
+                      {item.meatCount >= 6 && <span style={{ fontSize: '11px', color: 'var(--muted)' }}>máx</span>}
                       <button
                         onClick={() => handleBurgerCheddar(item.cartId)}
                         style={{
+                          marginLeft: '8px',
                           fontSize: '11px',
-                          padding: '3px 10px',
+                          padding: '4px 10px',
                           borderRadius: '6px',
                           border: '1px solid',
                           cursor: 'pointer',
@@ -230,29 +265,6 @@ export function CartSummary({ cart, setCart }) {
                       </button>
                     </div>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', alignSelf: 'center' }}>
-                    <p style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--y)', margin: 0 }}>
-                      ${lt.toLocaleString()}
-                    </p>
-                    <button
-                      onClick={() => handleRemoveBurger(item.cartId)}
-                      style={{
-                        background: 'rgba(255,49,49,0.15)',
-                        color: 'var(--r)',
-                        border: '1px solid rgba(255,49,49,0.3)',
-                        borderRadius: '8px',
-                        width: '28px',
-                        height: '28px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        flexShrink: 0,
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
                 </div>
               )
             }
@@ -260,30 +272,27 @@ export function CartSummary({ cart, setCart }) {
             // Producto normal
             return (
               <div key={item.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 0',
+                padding: '14px 0',
                 borderBottom: '1px solid var(--line)',
               }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' }}>
-                    {item.name}
-                  </h3>
-                  <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                    ${item.price.toLocaleString()} c/u
-                  </p>
+                {/* Fila principal */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text)' }}>
+                    {item.qty}x {item.name}
+                  </span>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--y)', flexShrink: 0 }}>
+                    ${(item.price * item.qty).toLocaleString()}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '16px' }}>
+                {/* Control cantidad */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--muted)', width: '90px' }}>Cantidad</span>
                   {qtyBtn(() => handleQtyChange(item.id, item.qty - 1), '−', 'var(--r)')}
-                  <span style={{ width: '32px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px', color: 'var(--text)' }}>
+                  <span style={{ width: '24px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', color: 'var(--text)' }}>
                     {item.qty}
                   </span>
                   {qtyBtn(() => handleQtyChange(item.id, item.qty + 1), '+', 'var(--y)')}
                 </div>
-                <p style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--y)', margin: 0 }}>
-                  ${(item.price * item.qty).toLocaleString()}
-                </p>
               </div>
             )
           })}

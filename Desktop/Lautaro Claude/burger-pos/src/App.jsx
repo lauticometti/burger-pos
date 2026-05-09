@@ -31,7 +31,7 @@ export default function App() {
     const orderCode = `${today}-${String(orderNumber).padStart(3, '0')}`;
 
     const subtotal = cart.reduce((sum, item) => {
-      if (item.cartId) return sum + item.basePrice + (item.meatCount - 1) * item.extraMeatPrice;
+      if (item.cartId) return sum + (item.basePrice + (item.meatCount - 1) * item.extraMeatPrice) * (item.qty || 1);
       return sum + item.price * item.qty;
     }, 0);
     const discountAmount = 0;
