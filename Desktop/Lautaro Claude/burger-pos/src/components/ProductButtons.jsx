@@ -12,20 +12,28 @@ const PRODUCTS = [
 
 export function ProductButtons({ cart, setCart }) {
   const handleBurger = () => {
-    setCart(prev => [
-      ...prev,
-      {
-        cartId: `burger-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        id: 'smash_burger',
-        name: 'Smash Burger',
-        basePrice: BURGER_BASE_PRICE,
-        meatCount: 1,
-        extraMeatPrice: EXTRA_MEAT_PRICE,
-        qty: 1,
-        price: BURGER_BASE_PRICE,
-        lineTotal: BURGER_BASE_PRICE,
+    setCart(prev => {
+      const existing = prev.find(item => item.cartId && item.meatCount === 1)
+      if (existing) {
+        return prev.map(item =>
+          item.cartId === existing.cartId ? { ...item, qty: item.qty + 1 } : item
+        )
       }
-    ])
+      return [
+        ...prev,
+        {
+          cartId: `burger-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: 'smash_burger',
+          name: 'Smash Burger',
+          basePrice: BURGER_BASE_PRICE,
+          meatCount: 1,
+          extraMeatPrice: EXTRA_MEAT_PRICE,
+          qty: 1,
+          price: BURGER_BASE_PRICE,
+          lineTotal: BURGER_BASE_PRICE,
+        }
+      ]
+    })
   }
 
   const handleProduct = (product) => {

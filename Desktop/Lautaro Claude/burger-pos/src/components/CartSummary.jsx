@@ -4,7 +4,7 @@ import { isValidCode, applyHiddenCode, removeHiddenCodeBenefit } from '../utils/
 const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple']
 
 function burgerLineTotal(item) {
-  return item.basePrice + (item.meatCount - 1) * item.extraMeatPrice
+  return (item.basePrice + (item.meatCount - 1) * item.extraMeatPrice) * (item.qty || 1)
 }
 
 function burgerDisplayName(item) {
@@ -22,6 +22,16 @@ export function CartSummary({ cart, setCart }) {
       const lt = item.basePrice + (next - 1) * item.extraMeatPrice
       return { ...item, meatCount: next, price: lt, lineTotal: lt }
     }))
+  }
+
+  const handleBurgerQty = (cartId, delta) => {
+    setCart(prev => {
+      const item = prev.find(i => i.cartId === cartId)
+      if (!item) return prev
+      const next = (item.qty || 1) + delta
+      if (next <= 0) return prev.filter(i => i.cartId !== cartId)
+      return prev.map(i => i.cartId === cartId ? { ...i, qty: next } : i)
+    })
   }
 
   const handleRemoveBurger = (cartId) => {
@@ -136,6 +146,20 @@ export function CartSummary({ cart, setCart }) {
                       {item.meatCount >= 6 && (
                         <span style={{ fontSize: '11px', color: 'var(--muted)' }}>máx</span>
                       )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Cantidad:</span>
+                      {qtyBtn(() => handleBurgerQty(item.cartId, -1), '−', 'var(--r)')}
+                      <span style={{
+                        width: '20px',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '16px',
+                        color: 'var(--text)',
+                      }}>
+                        {item.qty || 1}
+                      </span>
+                      {qtyBtn(() => handleBurgerQty(item.cartId, +1), '+', 'var(--y)')}
                     </div>
                   </div>
 

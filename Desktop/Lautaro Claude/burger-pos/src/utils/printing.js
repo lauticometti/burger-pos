@@ -72,8 +72,10 @@ function itemDisplayName(item) {
 }
 
 function itemLineTotal(item) {
-  if (item.cartId) return item.basePrice + (item.meatCount - 1) * item.extraMeatPrice;
-  return item.price * item.qty;
+  const unitPrice = item.cartId
+    ? item.basePrice + (item.meatCount - 1) * item.extraMeatPrice
+    : item.price;
+  return unitPrice * (item.qty || 1);
 }
 
 function buildSingleTicketHtml(order, type) {
@@ -84,11 +86,11 @@ function buildSingleTicketHtml(order, type) {
   const numStr = String(order.orderNumber).padStart(3, '0');
 
   const itemsWithPrices = order.items.map(item =>
-    `<div class="row"><span>1x ${itemDisplayName(item)}</span><span>$${itemLineTotal(item).toLocaleString()}</span></div>`
+    `<div class="row"><span>${item.qty || 1}x ${itemDisplayName(item)}</span><span>$${itemLineTotal(item).toLocaleString()}</span></div>`
   ).join('');
 
   const itemsNoPrices = order.items.map(item =>
-    `<div class="row"><span>1x ${itemDisplayName(item)}</span></div>`
+    `<div class="row"><span>${item.qty || 1}x ${itemDisplayName(item)}</span></div>`
   ).join('');
 
   const discountRow = order.discountAmount > 0
