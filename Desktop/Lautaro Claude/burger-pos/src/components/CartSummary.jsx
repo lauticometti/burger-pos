@@ -60,6 +60,16 @@ export function CartSummary({ cart, setCart }) {
     setCodeInput('')
   }
 
+  const PRODUCT_ORDER = ['papas_fritas', 'coca_600', 'coca_225', 'dip_salsa_secreta']
+
+  const sortedCart = [...cart].sort((a, b) => {
+    // Burgers primero, ordenadas por meatCount descendente
+    if (a.cartId && b.cartId) return b.meatCount - a.meatCount
+    if (a.cartId) return -1
+    if (b.cartId) return 1
+    return PRODUCT_ORDER.indexOf(a.id) - PRODUCT_ORDER.indexOf(b.id)
+  })
+
   const total = cart.reduce((sum, item) => {
     if (item.cartId) return sum + burgerLineTotal(item)
     return sum + item.price * item.qty
@@ -113,7 +123,7 @@ export function CartSummary({ cart, setCart }) {
           marginBottom: '24px'
         }}>
 
-          {cart.map(item => {
+          {sortedCart.map(item => {
             // Burger individual
             if (item.cartId) {
               const lt = burgerLineTotal(item)
