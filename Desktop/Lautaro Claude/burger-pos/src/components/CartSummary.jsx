@@ -14,14 +14,30 @@ function burgerDisplayName(item) {
 export function CartSummary({ cart, setCart }) {
   const [codeInput, setCodeInput] = useState('')
 
-  // Handlers para burgers (identificadas por cartId)
+  // Al sumar/restar carne: mueve 1 unidad del grupo origen al grupo destino
   const handleBurgerMeat = (cartId, delta) => {
-    setCart(prev => prev.map(item => {
-      if (item.cartId !== cartId) return item
-      const next = Math.min(6, Math.max(1, item.meatCount + delta))
-      const lt = item.basePrice + (next - 1) * item.extraMeatPrice
-      return { ...item, meatCount: next, price: lt, lineTotal: lt }
-    }))
+    setCart(prev => {
+      const item = prev.find(i => i.cartId === cartId)
+      if (!item) return prev
+      const nextMeat = Math.min(6, Math.max(1, item.meatCount + delta))
+      if (nextMeat === item.meatCount) return prev
+
+      // Reducir qty origen en 1 (eliminar si queda en 0)
+      const afterRemove = prev
+        .map(i => i.cartId !== cartId ? i : i.qty > 1 ? { ...i, qty: i.qty - 1 } : null)
+        .filter(Boolean)
+
+      // Buscar grupo destino con el nuevo meatCount
+      const dest = afterRemove.find(i => i.cartId && i.meatCount === nextMeat)
+      if (dest) {
+        return afterRemove.map(i => i.cartId === dest.cartId ? { ...i, qty: i.qty + 1 } : i)
+      }
+      // Crear nuevo grupo
+      return [
+        ...afterRemove,
+        { ...item, cartId: `burger-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, meatCount: nextMeat, qty: 1 }
+      ]
+    })
   }
 
   const handleBurgerQty = (cartId, delta) => {
