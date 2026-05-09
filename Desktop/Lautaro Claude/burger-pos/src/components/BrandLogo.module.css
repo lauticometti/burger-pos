@@ -1,0 +1,36 @@
+﻿@font-face {
+  font-family: "Archivo Black";
+  src:
+    url("../../assets/fonts/archivo-black/archivo-black-v23-latin_latin-ext-regular.woff2")
+      format("woff2"),
+    url("../../assets/fonts/archivo-black/archivo-black-v23-latin_latin-ext-regular.woff")
+      format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.wrap {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 14px;
+}
+
+.link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+
+.text {
+  font-family: "Archivo Black", system-ui, sans-serif;
+  font-size: clamp(54px, 10.5vw, 96px);
+  letter-spacing: -1px;
+  text-transform: none;
+  color: #ffc62a;
+  line-height: 1;
+}
+
+.accent {
+  color: var(--y);
+}
