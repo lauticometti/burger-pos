@@ -60,7 +60,11 @@ export function OrderForm({ cart, onSave }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0)
+  const itemTotal = (item) => item.cartId
+    ? (item.basePrice + (item.meatCount - 1) * item.extraMeatPrice) * (item.qty || 1)
+    : item.price * item.qty
+
+  const subtotal = cart.reduce((sum, item) => sum + itemTotal(item), 0)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -233,18 +237,24 @@ export function OrderForm({ cart, onSave }) {
             padding: '16px',
             marginBottom: '20px'
           }}>
-            {cart.map(item => (
-              <div key={item.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '14px',
-                color: 'var(--muted)',
-                marginBottom: '4px'
-              }}>
-                <span>{item.name} x{item.qty}</span>
-                <span>${(item.price * item.qty).toLocaleString()}</span>
-              </div>
-            ))}
+            {cart.map(item => {
+              const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple']
+              const displayName = item.cartId
+                ? `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}${item.noCheddar ? ' (sin cheddar)' : ''}`
+                : item.name
+              return (
+                <div key={item.cartId || item.id} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '14px',
+                  color: 'var(--muted)',
+                  marginBottom: '4px'
+                }}>
+                  <span>{displayName} x{item.qty || 1}</span>
+                  <span>${itemTotal(item).toLocaleString()}</span>
+                </div>
+              )
+            })}
             <div style={{
               borderTop: '1px solid rgba(255,198,42,0.2)',
               marginTop: '10px',
