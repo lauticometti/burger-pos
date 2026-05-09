@@ -1,11 +1,12 @@
+import { sortCartItems } from './cartSort.js'
 
 function formatPaymentMethod(method) {
   const map = {
     efectivo: 'Efectivo',
     transferencia: 'Transferencia',
     miti_miti: 'Miti miti',
-    cta_cte: 'Cta cte',
-    canje: 'Canje',
+    cta_cte: 'CTA CTE',
+    canje: 'CANJE',
     otro: 'Otro',
   };
   return map[method] || method;
@@ -69,7 +70,7 @@ const CSS_BASE = `
 const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple'];
 
 function itemDisplayName(item) {
-  if (item.cartId) {
+  if (item.category === 'burger' || item.cartId) {
     const base = `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}`;
     return item.noCheddar ? `${base} (sin cheddar)` : base;
   }
@@ -77,10 +78,20 @@ function itemDisplayName(item) {
 }
 
 function itemLineTotal(item) {
-  const unitPrice = item.cartId
+  const unitPrice = (item.category === 'burger' || item.cartId)
     ? item.basePrice + (item.meatCount - 1) * item.extraMeatPrice
     : item.price;
   return unitPrice * (item.qty || 1);
+}
+
+function buildMitiMitiRows(order) {
+  if (order.paymentMethod !== 'miti_miti' || !order.mitiMiti) return ''
+  const { transferencia, efectivo, deuda } = order.mitiMiti
+  const rows = []
+  if (transferencia > 0) rows.push(`<div class="row"><span class="label">&nbsp;&nbsp;Transferencia</span><span>$${transferencia.toLocaleString()}</span></div>`)
+  if (efectivo > 0) rows.push(`<div class="row"><span class="label">&nbsp;&nbsp;Efectivo</span><span>$${efectivo.toLocaleString()}</span></div>`)
+  if (deuda > 0) rows.push(`<div class="row"><span class="label">&nbsp;&nbsp;Queda debiendo</span><span>$${deuda.toLocaleString()}</span></div>`)
+  return rows.join('')
 }
 
 function buildSingleTicketHtml(order, type) {
@@ -90,11 +101,13 @@ function buildSingleTicketHtml(order, type) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const numStr = String(order.orderNumber).padStart(3, '0');
 
-  const itemsWithPrices = order.items.map(item =>
+  const sortedItems = sortCartItems(order.items)
+
+  const itemsWithPrices = sortedItems.map(item =>
     `<div class="row"><span>${item.qty || 1}x ${itemDisplayName(item)}</span><span>$${itemLineTotal(item).toLocaleString()}</span></div>`
   ).join('');
 
-  const itemsNoPrices = order.items.map(item =>
+  const itemsNoPrices = sortedItems.map(item =>
     `<div class="row"><span>${item.qty || 1}x ${itemDisplayName(item)}</span></div>`
   ).join('');
 
@@ -109,6 +122,8 @@ function buildSingleTicketHtml(order, type) {
     : '';
 
   let body;
+  const mitiMitiRows = buildMitiMitiRows(order)
+
   if (type === 'cliente') {
     body = `<div class="ticket">
       <div class="title">BURGER YA.</div>
@@ -122,6 +137,7 @@ function buildSingleTicketHtml(order, type) {
       <div class="total-row"><span>TOTAL</span><span>$${order.total.toLocaleString()}</span></div>
       <hr class="sep">
       <div class="row"><span class="label">Pago</span><span>${formatPaymentMethod(order.paymentMethod)}</span></div>
+      ${mitiMitiRows}
       <div class="row"><span class="label">Estado</span><span>${order.paymentStatus === 'pagado' ? 'PAGADO' : 'PENDIENTE'}</span></div>
       <div class="row"><span class="label">Tipo</span><span>${formatOrderType(order.orderType)}</span></div>
       ${notesRow}
@@ -154,6 +170,7 @@ function buildSingleTicketHtml(order, type) {
       <div class="total-row"><span>TOTAL</span><span>$${order.total.toLocaleString()}</span></div>
       <hr class="sep">
       <div class="row"><span class="label">Pago</span><span>${formatPaymentMethod(order.paymentMethod)}</span></div>
+      ${mitiMitiRows}
       <div class="row"><span class="label">Estado</span><span>${order.paymentStatus === 'pagado' ? 'PAGADO' : 'PENDIENTE'}</span></div>
       <div class="row"><span class="label">Tipo</span><span>${formatOrderType(order.orderType)}</span></div>
       ${notesRow}

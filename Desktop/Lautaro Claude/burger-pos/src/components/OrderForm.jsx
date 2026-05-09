@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sortCartItems } from '../utils/cartSort'
 
 const BTN = {
   base: {
@@ -27,7 +28,7 @@ function OptionGroup({ label, options, value, onChange }) {
       }}>
         {label}
       </label>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {options.map(opt => {
           const active = value === opt.value
           return (
@@ -51,6 +52,8 @@ function OptionGroup({ label, options, value, onChange }) {
   )
 }
 
+const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple']
+
 export function OrderForm({ cart, onSave }) {
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('efectivo')
@@ -60,22 +63,66 @@ export function OrderForm({ cart, onSave }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const itemTotal = (item) => item.cartId
+  // Miti miti
+  const [mitiTransf, setMitiTransf] = useState('')
+  const [mitiEfect, setMitiEfect] = useState('')
+  const [mitiDeuda, setMitiDeuda] = useState('')
+
+  const itemTotal = (item) => (item.category === 'burger' || item.cartId)
     ? (item.basePrice + (item.meatCount - 1) * item.extraMeatPrice) * (item.qty || 1)
     : item.price * item.qty
 
   const subtotal = cart.reduce((sum, item) => sum + itemTotal(item), 0)
 
+  // Lógica miti miti: si exactamente 2 campos tienen valor, calcular el tercero
+  const mitiT = mitiTransf === '' ? null : Number(mitiTransf)
+  const mitiE = mitiEfect === '' ? null : Number(mitiEfect)
+  const mitiD = mitiDeuda === '' ? null : Number(mitiDeuda)
+
+  const mitiSum = (mitiT ?? 0) + (mitiE ?? 0) + (mitiD ?? 0)
+  const mitiMatch = mitiSum === subtotal
+
+  const getMitiCalc = (field) => {
+    // Si el campo actual está vacío y los otros 2 tienen valor, calcula este
+    if (field === 'transf' && mitiTransf === '' && mitiEfect !== '' && mitiDeuda !== '') {
+      const calc = subtotal - (Number(mitiEfect) + Number(mitiDeuda))
+      return calc >= 0 ? String(calc) : ''
+    }
+    if (field === 'efect' && mitiEfect === '' && mitiTransf !== '' && mitiDeuda !== '') {
+      const calc = subtotal - (Number(mitiTransf) + Number(mitiDeuda))
+      return calc >= 0 ? String(calc) : ''
+    }
+    if (field === 'deuda' && mitiDeuda === '' && mitiTransf !== '' && mitiEfect !== '') {
+      const calc = subtotal - (Number(mitiTransf) + Number(mitiEfect))
+      return calc >= 0 ? String(calc) : ''
+    }
+    return null
+  }
+
+  const handleMitiChange = (field, value, setter) => {
+    setter(value)
+  }
+
+  const getFinalMitiValue = (field, rawValue) => {
+    if (rawValue !== '') return Number(rawValue) || 0
+    const calc = getMitiCalc(field)
+    return calc !== null ? Number(calc) : 0
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-
-    console.log("OrderForm submit iniciado")
 
     if (!customerName.trim()) {
       alert("Ingresá el nombre del cliente")
       return
     }
+
+    const mitiMiti = paymentMethod === 'miti_miti' ? {
+      transferencia: getFinalMitiValue('transf', mitiTransf),
+      efectivo: getFinalMitiValue('efect', mitiEfect),
+      deuda: getFinalMitiValue('deuda', mitiDeuda),
+    } : null
 
     const formData = {
       customerName: customerName.trim(),
@@ -83,19 +130,20 @@ export function OrderForm({ cart, onSave }) {
       paymentStatus,
       orderType,
       notes: notes.trim(),
+      mitiMiti,
     }
-
-    console.log("OrderForm llamando onSave", formData)
 
     setLoading(true)
     try {
       await onSave(formData)
-      console.log("OrderForm onSave finalizado")
       setCustomerName('')
       setNotes('')
       setPaymentMethod('efectivo')
       setPaymentStatus('pagado')
       setOrderType('local')
+      setMitiTransf('')
+      setMitiEfect('')
+      setMitiDeuda('')
     } catch (err) {
       console.error("Error en OrderForm submit:", err)
       alert(`Error guardando pedido: ${err.message || err}`)
@@ -103,6 +151,20 @@ export function OrderForm({ cart, onSave }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const sortedCart = sortCartItems(cart)
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '16px',
+    border: '2px solid rgba(255,255,255,0.1)',
+    borderRadius: 'var(--radius)',
+    background: 'rgba(255,255,255,0.05)',
+    color: 'var(--text)',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
   }
 
   return (
@@ -114,7 +176,7 @@ export function OrderForm({ cart, onSave }) {
     }}>
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
         <h1 style={{
-          fontSize: '36px',
+          fontSize: '32px',
           fontWeight: 'bold',
           textAlign: 'center',
           marginBottom: '24px',
@@ -150,15 +212,10 @@ export function OrderForm({ cart, onSave }) {
               placeholder="Ej: Juan, Mesa 3, Take-away"
               autoFocus
               style={{
-                width: '100%',
-                padding: '14px 16px',
+                ...inputStyle,
                 fontSize: '18px',
+                padding: '14px 16px',
                 border: '2px solid rgba(255,255,255,0.15)',
-                borderRadius: 'var(--radius)',
-                background: 'rgba(255,255,255,0.05)',
-                color: 'var(--text)',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -166,23 +223,95 @@ export function OrderForm({ cart, onSave }) {
           <OptionGroup
             label="Medio de pago"
             value={paymentMethod}
-            onChange={setPaymentMethod}
+            onChange={(v) => {
+              setPaymentMethod(v)
+              setMitiTransf('')
+              setMitiEfect('')
+              setMitiDeuda('')
+            }}
             options={[
-              { value: 'efectivo', label: 'Efectivo' },
+              { value: 'efectivo',      label: 'Efectivo' },
               { value: 'transferencia', label: 'Transferencia' },
-              { value: 'miti_miti', label: 'Miti miti' },
-              { value: 'cta_cte', label: 'Cta cte' },
-              { value: 'canje', label: 'Canje' },
-              { value: 'otro', label: 'Otro' },
+              { value: 'miti_miti',     label: 'Miti miti' },
+              { value: 'cta_cte',       label: 'Cta cte' },
+              { value: 'canje',         label: 'Canje' },
+              { value: 'otro',          label: 'Otro' },
             ]}
           />
+
+          {/* Inputs Miti miti */}
+          {paymentMethod === 'miti_miti' && (
+            <div style={{
+              background: 'rgba(255,198,42,0.05)',
+              border: '1px solid rgba(255,198,42,0.2)',
+              borderRadius: 'var(--radius)',
+              padding: '16px',
+              marginBottom: '20px',
+              marginTop: '-8px',
+            }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '12px', fontWeight: '600' }}>
+                DESGLOSE MITI MITI
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: 'Transferencia', field: 'transf', value: mitiTransf, setter: setMitiTransf },
+                  { label: 'Efectivo',      field: 'efect',  value: mitiEfect,  setter: setMitiEfect },
+                  { label: 'Queda debiendo', field: 'deuda', value: mitiDeuda,  setter: setMitiDeuda },
+                ].map(({ label, field, value, setter }) => {
+                  const calcVal = getMitiCalc(field)
+                  const displayValue = value !== '' ? value : (calcVal ?? '')
+                  return (
+                    <div key={field} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '13px', color: 'var(--muted)', width: '120px', flexShrink: 0 }}>
+                        {label}
+                      </label>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <span style={{
+                          position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                          color: 'var(--muted)', fontSize: '14px', pointerEvents: 'none'
+                        }}>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={displayValue}
+                          onChange={e => handleMitiChange(field, e.target.value, setter)}
+                          placeholder="0"
+                          style={{
+                            ...inputStyle,
+                            paddingLeft: '24px',
+                            background: calcVal !== null && value === ''
+                              ? 'rgba(255,198,42,0.08)'
+                              : 'rgba(255,255,255,0.05)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Validación */}
+              {(mitiTransf !== '' || mitiEfect !== '' || mitiDeuda !== '') && (
+                <div style={{
+                  marginTop: '10px',
+                  fontSize: '12px',
+                  color: mitiMatch ? '#4caf50' : 'var(--y)',
+                  fontWeight: '600',
+                }}>
+                  {mitiMatch
+                    ? `Suma correcta: $${mitiSum.toLocaleString()}`
+                    : `Suma: $${mitiSum.toLocaleString()} — Total: $${subtotal.toLocaleString()}`
+                  }
+                </div>
+              )}
+            </div>
+          )}
 
           <OptionGroup
             label="Estado de pago"
             value={paymentStatus}
             onChange={setPaymentStatus}
             options={[
-              { value: 'pagado', label: 'Pagado' },
+              { value: 'pagado',    label: 'Pagado' },
               { value: 'pendiente', label: 'Pendiente' },
             ]}
           />
@@ -192,8 +321,8 @@ export function OrderForm({ cart, onSave }) {
             value={orderType}
             onChange={setOrderType}
             options={[
-              { value: 'local', label: 'Local' },
-              { value: 'retiro', label: 'Retiro' },
+              { value: 'local',    label: 'Local' },
+              { value: 'retiro',   label: 'Retiro' },
               { value: 'delivery', label: 'Delivery' },
             ]}
           />
@@ -231,7 +360,7 @@ export function OrderForm({ cart, onSave }) {
             />
           </div>
 
-          {/* Resumen */}
+          {/* Resumen ordenado */}
           <div style={{
             background: 'rgba(255,198,42,0.08)',
             border: '1px solid rgba(255,198,42,0.2)',
@@ -239,9 +368,9 @@ export function OrderForm({ cart, onSave }) {
             padding: '16px',
             marginBottom: '20px'
           }}>
-            {cart.map(item => {
-              const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple']
-              const displayName = item.cartId
+            {sortedCart.map(item => {
+              const isBurger = item.category === 'burger' || item.cartId
+              const displayName = isBurger
                 ? `Smash Burger ${MEAT_NAMES[item.meatCount] || ''}${item.noCheddar ? ' (sin cheddar)' : ''}`
                 : item.name
               return (

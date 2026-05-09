@@ -75,6 +75,26 @@ img {
   display: block;
 }
 
+/* Layout responsive: sidebar carrito en desktop, footer en mobile */
+.cart-sidebar {
+  display: flex;
+}
+.cart-footer-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cart-sidebar {
+    display: none !important;
+  }
+  .cart-footer-mobile {
+    display: flex !important;
+  }
+  .menu-left-col {
+    padding-bottom: 100px !important;
+  }
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
