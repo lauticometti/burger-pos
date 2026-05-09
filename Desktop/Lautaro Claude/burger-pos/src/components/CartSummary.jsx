@@ -157,7 +157,7 @@ export function CartSummary({ cart, setCart }) {
                       {burgerDisplayName(item)}
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Carnes:</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)', width: '60px' }}>Carnes:</span>
                       {qtyBtn(() => handleBurgerMeat(item.cartId, -1), '−', 'var(--r)')}
                       <span style={{
                         width: '20px',
@@ -174,7 +174,7 @@ export function CartSummary({ cart, setCart }) {
                       )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Cantidad:</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)', width: '60px' }}>Cantidad:</span>
                       {qtyBtn(() => handleBurgerQty(item.cartId, -1), '−', 'var(--r)')}
                       <span style={{
                         width: '20px',
