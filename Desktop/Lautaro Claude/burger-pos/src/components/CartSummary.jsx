@@ -146,13 +146,13 @@ export function CartSummary({ cart, setCart }) {
               return (
                 <div key={item.cartId} style={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'stretch',
                   justifyContent: 'space-between',
                   padding: '16px 0',
                   borderBottom: '1px solid var(--line)',
                   gap: '12px',
                 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' }}>
                       {burgerDisplayName(item)}
                     </h3>
@@ -189,7 +189,7 @@ export function CartSummary({ cart, setCart }) {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', alignSelf: 'center' }}>
                     <p style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--y)', margin: 0 }}>
                       ${lt.toLocaleString()}
                     </p>
