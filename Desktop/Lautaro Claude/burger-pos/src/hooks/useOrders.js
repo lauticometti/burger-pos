@@ -23,14 +23,29 @@ export function useOrders() {
     return () => unsubscribe()
   }, [])
 
-  const saveOrder = async (orderData) => {
-    const docRef = await addDoc(collection(db, 'orders'), {
+  const saveOrder = async (orderData, user) => {
+    if (!user) throw new Error('Usuario no autenticado')
+    const orderToSave = {
       ...orderData,
+      createdByUid: user.uid,
+      createdByEmail: user.email,
+      source: 'pos',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    })
-    console.log("Pedido guardado en Firestore con ID:", docRef.id)
-    return docRef.id
+    }
+    console.log("USER AUTH:", { uid: user.uid, email: user.email })
+    console.log("ORDER TO SAVE:", orderToSave)
+    console.log("ORDER KEYS:", Object.keys(orderToSave))
+    try {
+      const docRef = await addDoc(collection(db, 'orders'), orderToSave)
+      console.log("Pedido guardado en Firestore con ID:", docRef.id)
+      return docRef.id
+    } catch (error) {
+      console.error("Firestore saveOrder error:", error)
+      console.error("error.code:", error.code)
+      console.error("error.message:", error.message)
+      throw error
+    }
   }
 
   const updateOrderStatus = async (docId, status) => {

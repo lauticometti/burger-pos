@@ -4,7 +4,9 @@ import { CartSummary } from "./components/CartSummary";
 import { OrderForm } from "./components/OrderForm";
 import { OrderHistory } from "./components/OrderHistory";
 import { PosInstructions } from "./components/PosInstructions";
+import { LoginScreen } from "./components/LoginScreen";
 import { useOrders } from "./hooks/useOrders";
+import { useAuth } from "./hooks/useAuth";
 import { printTicket, printTickets, todayStr } from "./utils/printing";
 
 function isSameDay(firestoreTimestamp) {
@@ -19,9 +21,11 @@ function isSameDay(firestoreTimestamp) {
 }
 
 export default function App() {
+  const { user, loading: authLoading, signIn, signOut } = useAuth();
   const [step, setStep] = useState("menu");
   const [prevStep, setPrevStep] = useState("menu");
   const [cart, setCart] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   const goToConfirm = (from) => { setPrevStep(from); setStep('confirm'); };
   const { orders, loading, saveOrder, updateOrderStatus, updatePaymentStatus } = useOrders();
@@ -45,6 +49,8 @@ export default function App() {
   }, [cart.length]);
 
   const handleSaveOrder = async (formData) => {
+    if (saving) return;
+    setSaving(true);
     console.log("App handleSaveOrder recibido:", formData);
     const today = todayStr();
     const todayOrders = orders.filter(o => o.businessDate === today);
@@ -80,11 +86,12 @@ export default function App() {
 
     let firestoreId;
     try {
-      firestoreId = await saveOrder(orderData);
+      firestoreId = await saveOrder(orderData, user);
       console.log("Firestore guardó OK:", firestoreId);
     } catch (err) {
       console.error("Error guardando pedido en Firestore:", err);
       alert("ERROR: el pedido no se guardó en Firestore. No se va a imprimir ni limpiar el carrito.");
+      setSaving(false);
       return;
     }
 
@@ -105,12 +112,16 @@ export default function App() {
 
     setCart([]);
     setStep('menu');
+    setSaving(false);
   };
 
   const total = cart.reduce((sum, item) => {
     if (item.category === 'burger' || item.cartId) return sum + (item.basePrice + (item.meatCount - 1) * item.extraMeatPrice) * (item.qty || 1);
     return sum + item.price * item.qty;
   }, 0);
+
+  if (authLoading) return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />;
+  if (!user) return <LoginScreen onLogin={signIn} />;
 
   return (
     <div>
@@ -122,9 +133,10 @@ export default function App() {
       {/* Vista principal: layout 2 columnas desktop, 1 columna mobile */}
       {step === "menu" && (
         <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-          {/* Link instrucciones discreto */}
+          {/* Controles top-right: instrucciones + logout */}
           <div style={{
             position: 'fixed', top: '12px', right: '12px', zIndex: 100,
+            display: 'flex', gap: '4px', alignItems: 'center',
           }}>
             <button
               onClick={() => setStep('instrucciones')}
@@ -139,6 +151,20 @@ export default function App() {
               }}
             >
               Instrucciones POS
+            </button>
+            <button
+              onClick={signOut}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--line)',
+                color: 'var(--muted)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              Cerrar sesión
             </button>
           </div>
 
