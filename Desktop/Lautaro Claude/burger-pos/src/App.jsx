@@ -5,6 +5,7 @@ import { OrderForm } from "./components/OrderForm";
 import { OrderHistory } from "./components/OrderHistory";
 import { PosInstructions } from "./components/PosInstructions";
 import { LoginScreen } from "./components/LoginScreen";
+import { DailyDashboard } from "./components/DailyDashboard";
 import { useOrders } from "./hooks/useOrders";
 import { useAuth } from "./hooks/useAuth";
 import { printTicket, printTickets, todayStr } from "./utils/printing";
@@ -138,6 +139,20 @@ export default function App() {
             position: 'fixed', top: '12px', right: '12px', zIndex: 100,
             display: 'flex', gap: '4px', alignItems: 'center',
           }}>
+            <button
+              onClick={() => setStep('dashboard')}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,198,42,0.4)',
+                color: 'var(--y)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              Ventas
+            </button>
             <button
               onClick={() => setStep('instrucciones')}
               style={{
@@ -348,6 +363,11 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Dashboard de ventas */}
+      {step === "dashboard" && (
+        <DailyDashboard onBack={() => setStep('menu')} />
       )}
 
       {/* Step confirm */}
