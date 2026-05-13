@@ -6,6 +6,9 @@ import {
   groupSalesByPaymentMethod,
   groupSalesByHour,
   groupProductsSold,
+  splitOrdersByMode,
+  groupInternalOrders,
+  getStaffDeductions,
 } from '../utils/metrics'
 
 const fmt = (n) => '$' + Number(n ?? 0).toLocaleString('es-AR')
@@ -44,6 +47,16 @@ function statusColor(status) {
 const SECTION_STYLE = { marginBottom: '32px' }
 const SECTION_TITLE = { fontSize: '13px', fontWeight: '600', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }
 
+const PURPOSE_LABELS = {
+  test: 'Prueba',
+  staff_consumption: 'Consumo staff',
+  staff_meal: 'Comida staff',         // backward compat
+  staff_extra: 'Extra staff',          // backward compat
+  marketing_barter: 'Canje marketing',
+  owner_consumption: 'Consumo personal',
+  unknown: 'Desconocido',
+}
+
 export function DailyDashboard({ onBack }) {
   const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'))
   const [orders, setOrders] = useState([])
@@ -65,10 +78,14 @@ export function DailyDashboard({ onBack }) {
   const validOrders = orders.filter(o => o.status !== 'cancelado')
   const cancelados = orders.filter(o => o.status === 'cancelado')
   const canceladosTotal = cancelados.reduce((s, o) => s + Number(o.total ?? 0), 0)
-  const metrics = calculateDailyMetrics(validOrders)
-  const byPayment = groupSalesByPaymentMethod(validOrders)
-  const byHour = groupSalesByHour(validOrders)
-  const products = groupProductsSold(validOrders)
+
+  const { revenueOrders, internalOrders } = splitOrdersByMode(validOrders)
+  const metrics = calculateDailyMetrics(revenueOrders)
+  const byPayment = groupSalesByPaymentMethod(revenueOrders)
+  const byHour = groupSalesByHour(revenueOrders)
+  const products = groupProductsSold(revenueOrders)
+  const internalGrouped = groupInternalOrders(internalOrders)
+  const staffDeductions = getStaffDeductions(internalOrders)
 
   return (
     <div style={{ minHeight: '100vh', background: '#1a1a1a', color: '#fff', paddingBottom: '60px' }}>
@@ -129,10 +146,10 @@ export function DailyDashboard({ onBack }) {
 
         {!loading && orders.length > 0 && (
           <>
-            {/* Metric cards */}
+            {/* Metric cards — solo ventas reales */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '32px' }}>
               <MetricCard label="Ventas totales" value={fmt(metrics.ventasTotales)} />
-              <MetricCard label="Pedidos" value={metrics.pedidosTotales} />
+              <MetricCard label="Pedidos cobrados" value={metrics.pedidosTotales} />
               <MetricCard label="Ticket promedio" value={fmt(metrics.ticketPromedio)} />
               <MetricCard label="Burgers" value={metrics.burgersVendidas} />
               <MetricCard label="Carnes" value={metrics.carnesVendidas} />
@@ -216,9 +233,9 @@ export function DailyDashboard({ onBack }) {
               </table>
             </div>
 
-            {/* Pedidos del dia */}
+            {/* Pedidos cobrados del dia (solo ventas reales) */}
             <div style={SECTION_STYLE}>
-              <div style={SECTION_TITLE}>Pedidos del dia ({validOrders.length})</div>
+              <div style={SECTION_TITLE}>Pedidos cobrados del dia ({revenueOrders.length})</div>
               <table style={TABLE_STYLE}>
                 <thead>
                   <tr>
@@ -231,9 +248,9 @@ export function DailyDashboard({ onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {validOrders.map((o, i) => (
+                  {revenueOrders.map((o, i) => (
                     <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                      <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.orderCode ?? '-'}</td>
+                      <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.displayOrderCode ?? o.orderCode ?? '-'}</td>
                       <td style={TD_STYLE}>{o.customerName ?? '-'}</td>
                       <td style={{ ...TD_STYLE, color: '#888' }}>{o.orderType ?? '-'}</td>
                       <td style={{ ...TD_STYLE, color: '#888' }}>{o.paymentMethod ?? '-'}</td>
@@ -241,6 +258,9 @@ export function DailyDashboard({ onBack }) {
                       <td style={{ ...TD_STYLE, color: statusColor(o.status), fontWeight: '500' }}>{o.status ?? '-'}</td>
                     </tr>
                   ))}
+                  {revenueOrders.length === 0 && (
+                    <tr><td colSpan={6} style={{ ...TD_STYLE, color: '#666' }}>Sin ventas cobradas.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -266,7 +286,7 @@ export function DailyDashboard({ onBack }) {
                     <tbody>
                       {cancelados.map((o, i) => (
                         <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                          <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.orderCode ?? '-'}</td>
+                          <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.displayOrderCode ?? o.orderCode ?? '-'}</td>
                           <td style={TD_STYLE}>{o.customerName ?? '-'}</td>
                           <td style={TD_RIGHT}>{fmt(o.total)}</td>
                         </tr>
@@ -276,6 +296,143 @@ export function DailyDashboard({ onBack }) {
                 </>
               )}
             </div>
+
+            {/* Pedidos internos / no cobrados */}
+            <div style={SECTION_STYLE}>
+              <div style={{
+                ...SECTION_TITLE,
+                color: '#ff9666',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                Pedidos internos / no cobrados
+                {internalOrders.length > 0 && (
+                  <span style={{
+                    background: 'rgba(255,150,50,0.15)',
+                    border: '1px solid rgba(255,150,50,0.3)',
+                    borderRadius: '4px',
+                    padding: '1px 6px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                  }}>
+                    {internalOrders.length}
+                  </span>
+                )}
+              </div>
+
+              {internalOrders.length === 0 ? (
+                <div style={{ color: '#666', fontSize: '13px' }}>Sin pedidos internos hoy.</div>
+              ) : (
+                <>
+                  {internalGrouped.map(group => {
+                    const isStaffConsumption = group.purpose === 'staff_consumption'
+                    return (
+                      <div key={group.purpose} style={{ marginBottom: '20px' }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          marginBottom: '8px',
+                          paddingBottom: '6px',
+                          borderBottom: '1px solid #333',
+                        }}>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#ff9666' }}>
+                            {PURPOSE_LABELS[group.purpose] ?? group.purpose}
+                          </span>
+                          <span style={{ fontSize: '12px', color: '#888' }}>
+                            {group.count} pedido{group.count !== 1 ? 's' : ''}
+                          </span>
+                          <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>
+                            Consumo: {fmt(group.internalAmountTotal)}
+                            {isStaffConsumption && (() => {
+                              const totalDeduction = group.orders.reduce((s, o) => s + Number(o.payrollDeductionAmount ?? 0), 0)
+                              const totalCovered = group.orders.reduce((s, o) => s + Number(o.staffCoveredAmount ?? 0), 0)
+                              return ` · Saldo: ${fmt(totalCovered)} · Desc. sueldo: ${fmt(totalDeduction)}`
+                            })()}
+                          </span>
+                        </div>
+                        <table style={TABLE_STYLE}>
+                          <thead>
+                            <tr>
+                              <th style={TH_STYLE}>Codigo</th>
+                              <th style={TH_STYLE}>Empleado</th>
+                              {isStaffConsumption && <th style={TH_STYLE}>Rol</th>}
+                              <th style={TH_STYLE}>Nota</th>
+                              <th style={{ ...TH_STYLE, textAlign: 'right' }}>Consumo</th>
+                              {isStaffConsumption && (
+                                <>
+                                  <th style={{ ...TH_STYLE, textAlign: 'right' }}>Saldo</th>
+                                  <th style={{ ...TH_STYLE, textAlign: 'right' }}>Desc. sueldo</th>
+                                </>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.orders.map((o, i) => (
+                              <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                                <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#ff9666' }}>
+                                  {o.displayOrderCode ?? o.orderCode ?? '-'}
+                                </td>
+                                <td style={{ ...TD_STYLE, color: '#ccc' }}>{o.relatedPerson ?? o.customerName ?? '-'}</td>
+                                {isStaffConsumption && (
+                                  <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>
+                                    {o.relatedPersonRole || 'otro'}
+                                  </td>
+                                )}
+                                <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>{o.internalNote || '—'}</td>
+                                <td style={{ ...TD_RIGHT, color: '#ff9666', fontWeight: '600' }}>
+                                  {o.orderPurpose === 'test' ? '—' : fmt(o.internalAmount ?? 0)}
+                                </td>
+                                {isStaffConsumption && (
+                                  <>
+                                    <td style={{ ...TD_RIGHT, color: 'var(--y)' }}>{fmt(o.staffCoveredAmount ?? 0)}</td>
+                                    <td style={{ ...TD_RIGHT, color: Number(o.payrollDeductionAmount ?? 0) > 0 ? '#ef9f9f' : '#888' }}>
+                                      {fmt(o.payrollDeductionAmount ?? 0)}
+                                    </td>
+                                  </>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* Descuentos staff del dia */}
+            {staffDeductions.length > 0 && (
+              <div style={SECTION_STYLE}>
+                <div style={{ ...SECTION_TITLE, color: '#ef9f9f' }}>
+                  Descuentos staff del dia
+                </div>
+                <table style={TABLE_STYLE}>
+                  <thead>
+                    <tr>
+                      <th style={TH_STYLE}>Empleado</th>
+                      <th style={TH_STYLE}>Tipo</th>
+                      <th style={{ ...TH_STYLE, textAlign: 'right' }}>Pedidos</th>
+                      <th style={{ ...TH_STYLE, textAlign: 'right' }}>Total descuento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffDeductions.map((row, i) => (
+                      <tr key={row.staffName} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
+                        <td style={TD_STYLE}>{row.staffName}</td>
+                        <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>
+                          {row.staffRole === 'delivery' ? 'Diario' : 'Semanal'}
+                        </td>
+                        <td style={TD_RIGHT}>{row.count}</td>
+                        <td style={{ ...TD_RIGHT, color: '#ef9f9f', fontWeight: '600' }}>{fmt(row.totalAmount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { isValidCode, applyHiddenCode, removeHiddenCodeBenefit } from '../utils/hiddenCode'
 import { sortCartItems } from '../utils/cartSort'
+import { clearOrderFromStorage } from '../hooks/useLocalOrderPersistence'
 
 const MEAT_NAMES = ['', 'Simple', 'Doble', 'Triple', 'Cuádruple', 'Quíntuple', 'Séxtuple']
 
@@ -75,6 +76,7 @@ export function CartSummary({ cart, setCart, onViewFull, compact }) {
   const handleVaciar = () => {
     if (window.confirm('¿Vaciar pedido actual?')) {
       setCart([])
+      clearOrderFromStorage()
     }
   }
 
@@ -122,55 +124,25 @@ export function CartSummary({ cart, setCart, onViewFull, compact }) {
     }}>
       <div style={{ maxWidth: compact ? '100%' : '640px', margin: '0 auto' }}>
 
-        {/* Encabezado con título y botón vaciar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        {/* Encabezado */}
+        <div className="cart-header">
           {!compact && (
-            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--text)', margin: 0 }}>
-              Pedido
-            </h1>
+            <h1 className="cart-title" style={{ fontSize: '22px' }}>Pedido</h1>
           )}
           {compact && (
-            <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--text)' }}>
-              Pedido
-            </span>
-          )}
-          {cart.length > 0 && (
-            <button
-              onClick={handleVaciar}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--muted)',
-                fontSize: '12px',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontWeight: '600',
-              }}
-            >
-              Vaciar carrito
-            </button>
+            <span className="cart-title" style={{ fontSize: '15px' }}>Pedido</span>
           )}
         </div>
 
-        {/* Síntesis rápida */}
+        {/* Síntesis rápida con botón Vaciar integrado */}
         {cart.length > 0 && (
-          <div style={{
-            background: 'rgba(255,198,42,0.08)',
-            border: '1px solid rgba(255,198,42,0.2)',
-            borderRadius: 'var(--radius)',
-            padding: '8px 12px',
-            marginBottom: '10px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
+          <div className="cart-summary-row">
             <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
               {totalLineas} {totalLineas === 1 ? 'producto' : 'productos'} · {totalUnidades} {totalUnidades === 1 ? 'unidad' : 'unidades'}
             </span>
-            <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--y)' }}>
-              ${total.toLocaleString()}
-            </span>
+            <button className="clear-cart-button" onClick={handleVaciar}>
+              Vaciar
+            </button>
           </div>
         )}
 

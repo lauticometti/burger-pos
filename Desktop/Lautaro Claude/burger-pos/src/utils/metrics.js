@@ -108,3 +108,51 @@ export function groupProductsSold(orders) {
   }
   return Array.from(map.values()).sort((a, b) => b.qty - a.qty)
 }
+
+export function splitOrdersByMode(validOrders) {
+  return {
+    revenueOrders: validOrders.filter(o => o.countsAsRevenue !== false),
+    internalOrders: validOrders.filter(o => o.countsAsRevenue === false),
+  }
+}
+
+export function groupInternalOrders(internalOrders) {
+  // staff_consumption primero, luego compat con pedidos viejos staff_meal/staff_extra
+  const ORDER = ['test', 'staff_consumption', 'staff_meal', 'staff_extra', 'marketing_barter', 'owner_consumption']
+  const map = {}
+  for (const o of internalOrders) {
+    const p = o.orderPurpose ?? 'unknown'
+    if (!map[p]) map[p] = { purpose: p, count: 0, saleValueTotal: 0, internalAmountTotal: 0, orders: [] }
+    map[p].count++
+    map[p].saleValueTotal += Number(o.saleValueAmount ?? o.total ?? 0)
+    map[p].internalAmountTotal += Number(o.internalAmount ?? 0)
+    map[p].orders.push(o)
+  }
+  // Include any purposes not in ORDER (future-proofing)
+  const inOrder = new Set(ORDER)
+  for (const p of Object.keys(map)) {
+    if (!inOrder.has(p)) ORDER.push(p)
+  }
+  return ORDER.map(p => map[p]).filter(Boolean)
+}
+
+export function getStaffDeductions(internalOrders) {
+  const map = {}
+  for (const o of internalOrders) {
+    let deductionAmt = 0
+    if (o.orderPurpose === 'staff_consumption') {
+      deductionAmt = Number(o.payrollDeductionAmount ?? 0)
+    } else if (o.orderPurpose === 'staff_extra') {
+      // backward compat with old orders
+      deductionAmt = Number(o.internalAmount ?? 0)
+    }
+    if (deductionAmt <= 0) continue
+    const name = o.relatedPerson ?? 'Desconocido'
+    const role = o.relatedPersonRole || 'otro'
+    if (!map[name]) map[name] = { staffName: name, staffRole: role, count: 0, totalAmount: 0 }
+    map[name].count++
+    map[name].totalAmount += deductionAmt
+    if (role !== 'otro') map[name].staffRole = role
+  }
+  return Object.values(map).sort((a, b) => b.totalAmount - a.totalAmount)
+}
