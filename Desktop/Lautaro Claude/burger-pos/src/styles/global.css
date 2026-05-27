@@ -248,3 +248,37 @@ select:-webkit-autofill:focus {
   box-shadow: 0 0 0 1000px #0f0f0f inset;
   transition: background-color 9999s ease-in-out 0s;
 }
+
+/* ── Selects: dark theme global ──────────────────── */
+select,
+select option,
+select optgroup {
+  background-color: #181818 !important;
+  color: #f5f5f5 !important;
+}
+
+select {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  appearance: auto;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--y);
+  box-shadow: 0 0 0 1px rgba(255, 198, 42, 0.35);
+}
+
+select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.internal-datetime-input:focus {
+  outline: none;
+  border-color: var(--y) !important;
+  box-shadow: 0 0 0 1px rgba(255, 198, 42, 0.35);
+}

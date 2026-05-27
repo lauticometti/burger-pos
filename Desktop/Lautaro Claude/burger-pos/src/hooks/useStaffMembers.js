@@ -27,6 +27,10 @@ export function useStaffMembers({ includeInactive = false } = {}) {
       name: name.trim(),
       role: role || 'otro',
       active: true,
+      weeklySalary: 0,
+      salaryType: 'custom',
+      defaultShiftCreditAmount: 0,
+      paymentDay: 'monday',
       createdAt: serverTimestamp(),
       createdByEmail: user.email,
       createdByUid: user.uid,
@@ -44,4 +48,26 @@ export function useStaffMembers({ includeInactive = false } = {}) {
   }
 
   return { staffMembers, loadingStaff, createStaffMember, updateStaffMember }
+}
+
+/**
+ * Normaliza un documento staffMembers para garantizar que todos los campos
+ * opcionales nuevos tengan valores seguros aunque el documento sea antiguo.
+ * No modifica Firestore — solo para uso en memoria / cálculos.
+ *
+ * @param {Object} member
+ * @returns {Object}
+ */
+export function normalizeStaffMember(member) {
+  return {
+    ...member,
+    active: member.active !== false,
+    weeklySalary: Number(member.weeklySalary ?? 0),
+    salaryType: member.salaryType ?? 'custom',
+    shiftRate: Number(member.shiftRate ?? 0),
+    deliveryBaseAmount: Number(member.deliveryBaseAmount ?? 0),
+    deliveryBaseHours: Number(member.deliveryBaseHours ?? 4),
+    defaultShiftCreditAmount: Number(member.defaultShiftCreditAmount ?? 0),
+    paymentDay: member.paymentDay ?? 'monday',
+  }
 }

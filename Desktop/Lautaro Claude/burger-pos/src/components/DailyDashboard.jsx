@@ -10,6 +10,7 @@ import {
   groupInternalOrders,
   getStaffDeductions,
 } from '../utils/metrics'
+import { getDisplayCode, getItemDisplayName, getItemLineTotal, getOrderNetRevenue } from '../utils/orderUtils'
 
 const fmt = (n) => '$' + Number(n ?? 0).toLocaleString('es-AR')
 
@@ -48,13 +49,28 @@ const SECTION_STYLE = { marginBottom: '32px' }
 const SECTION_TITLE = { fontSize: '13px', fontWeight: '600', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }
 
 const PURPOSE_LABELS = {
-  test: 'Prueba',
-  staff_consumption: 'Consumo staff',
-  staff_meal: 'Comida staff',         // backward compat
-  staff_extra: 'Extra staff',          // backward compat
-  marketing_barter: 'Canje marketing',
-  owner_consumption: 'Consumo personal',
-  unknown: 'Desconocido',
+  test:                 'Prueba',
+  staff_consumption:    'Staff',
+  staff_meal:           'Staff',              // backward compat
+  staff_extra:          'Staff',              // backward compat
+  marketing:            'Marketing',
+  marketing_barter:     'Marketing',          // backward compat
+  internal_account:     'Cuenta interna',
+  owner_consumption:    'Cuenta interna',     // backward compat
+  personal_consumption: 'Cuenta interna',     // backward compat
+  unknown:              'Desconocido',
+}
+
+function isStaffPurpose(purpose) {
+  return purpose === 'staff_consumption' || purpose === 'staff_meal' || purpose === 'staff_extra'
+}
+
+function isMarketingPurpose(purpose) {
+  return purpose === 'marketing' || purpose === 'marketing_barter'
+}
+
+function isInternalAccountPurpose(purpose) {
+  return purpose === 'internal_account' || purpose === 'owner_consumption' || purpose === 'personal_consumption'
 }
 
 export function DailyDashboard({ onBack }) {
@@ -62,6 +78,7 @@ export function DailyDashboard({ onBack }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [expandedOrderId, setExpandedOrderId] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -248,16 +265,73 @@ export function DailyDashboard({ onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {revenueOrders.map((o, i) => (
-                    <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                      <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.displayOrderCode ?? o.orderCode ?? '-'}</td>
-                      <td style={TD_STYLE}>{o.customerName ?? '-'}</td>
-                      <td style={{ ...TD_STYLE, color: '#888' }}>{o.orderType ?? '-'}</td>
-                      <td style={{ ...TD_STYLE, color: '#888' }}>{o.paymentMethod ?? '-'}</td>
-                      <td style={TD_RIGHT}>{fmt(o.total)}</td>
-                      <td style={{ ...TD_STYLE, color: statusColor(o.status), fontWeight: '500' }}>{o.status ?? '-'}</td>
-                    </tr>
-                  ))}
+                  {revenueOrders.map((o, i) => {
+                    const isEx = expandedOrderId === o.id
+                    const deliverySurcharge = Number(o.deliverySurcharge ?? 0)
+                    const deliveryPayout = Number(o.deliveryPayout ?? 0)
+                    const netRevenue = getOrderNetRevenue(o)
+                    const kitchenNote = o.kitchenNote || o.notes || ''
+                    const internalNote = o.internalNote || ''
+                    return (
+                      <>
+                        <tr
+                          key={o.id}
+                          onClick={() => setExpandedOrderId(isEx ? null : o.id)}
+                          style={{ background: isEx ? 'rgba(255,255,255,0.05)' : (i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent'), cursor: 'pointer' }}
+                        >
+                          <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{getDisplayCode(o)}</td>
+                          <td style={TD_STYLE}>{o.customerName ?? '-'}</td>
+                          <td style={{ ...TD_STYLE, color: '#888' }}>{o.orderType ?? '-'}</td>
+                          <td style={{ ...TD_STYLE, color: '#888' }}>{o.paymentMethod ?? '-'}</td>
+                          <td style={TD_RIGHT}>{fmt(o.total)}</td>
+                          <td style={{ ...TD_STYLE, color: statusColor(o.status), fontWeight: '500' }}>{o.status ?? '-'}</td>
+                        </tr>
+                        {isEx && (
+                          <tr key={`${o.id}-detail`} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <td colSpan={6} style={{ padding: '8px 16px 12px' }}>
+                              {/* Items */}
+                              {(o.items || []).map((it, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888', marginBottom: '2px' }}>
+                                  <span>{it.qty || 1}x {getItemDisplayName(it)}</span>
+                                  <span>{fmt(getItemLineTotal(it))}</span>
+                                </div>
+                              ))}
+                              {/* Delivery charges */}
+                              {deliverySurcharge > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#38bdf8', marginTop: '2px' }}>
+                                  <span>Recargo envío</span><span>+{fmt(deliverySurcharge)}</span>
+                                </div>
+                              )}
+                              {deliveryPayout > 0 && (
+                                <>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                                    <span>Pago delivery{o.assignedDeliveryName ? ` (${o.assignedDeliveryName})` : ''}</span>
+                                    <span>-{fmt(deliveryPayout)}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#4ade80', marginTop: '2px', fontWeight: '600' }}>
+                                    <span>Neto Burger Ya</span><span>{fmt(netRevenue)}</span>
+                                  </div>
+                                </>
+                              )}
+                              {/* Notes */}
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                {kitchenNote && (
+                                  <span style={{ fontSize: '11px', color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px', padding: '2px 7px' }}>
+                                    Cocina: {kitchenNote}
+                                  </span>
+                                )}
+                                {internalNote && (
+                                  <span style={{ fontSize: '11px', color: '#888', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '2px 7px' }}>
+                                    Interno: {internalNote}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
                   {revenueOrders.length === 0 && (
                     <tr><td colSpan={6} style={{ ...TD_STYLE, color: '#666' }}>Sin ventas cobradas.</td></tr>
                   )}
@@ -273,7 +347,7 @@ export function DailyDashboard({ onBack }) {
               ) : (
                 <>
                   <div style={{ fontSize: '13px', color: '#ef4444', marginBottom: '10px' }}>
-                    {cancelados.length} cancelado{cancelados.length !== 1 ? 's' : ''} — total: {fmt(canceladosTotal)}
+                    {cancelados.length} cancelado{cancelados.length !== 1 ? 's' : ''} — valor referencia: {fmt(canceladosTotal)}
                   </div>
                   <table style={TABLE_STYLE}>
                     <thead>
@@ -286,7 +360,7 @@ export function DailyDashboard({ onBack }) {
                     <tbody>
                       {cancelados.map((o, i) => (
                         <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                          <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{o.displayOrderCode ?? o.orderCode ?? '-'}</td>
+                          <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>{getDisplayCode(o)}</td>
                           <td style={TD_STYLE}>{o.customerName ?? '-'}</td>
                           <td style={TD_RIGHT}>{fmt(o.total)}</td>
                         </tr>
@@ -326,17 +400,12 @@ export function DailyDashboard({ onBack }) {
               ) : (
                 <>
                   {internalGrouped.map(group => {
-                    const isStaffConsumption = group.purpose === 'staff_consumption'
+                    const isStaff = isStaffPurpose(group.purpose)
+                    const isMarketing = isMarketingPurpose(group.purpose)
+                    const isIntAcc = isInternalAccountPurpose(group.purpose)
                     return (
                       <div key={group.purpose} style={{ marginBottom: '20px' }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          marginBottom: '8px',
-                          paddingBottom: '6px',
-                          borderBottom: '1px solid #333',
-                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #333' }}>
                           <span style={{ fontSize: '12px', fontWeight: '700', color: '#ff9666' }}>
                             {PURPOSE_LABELS[group.purpose] ?? group.purpose}
                           </span>
@@ -344,53 +413,83 @@ export function DailyDashboard({ onBack }) {
                             {group.count} pedido{group.count !== 1 ? 's' : ''}
                           </span>
                           <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>
-                            Consumo: {fmt(group.internalAmountTotal)}
-                            {isStaffConsumption && (() => {
+                            {isStaff && (() => {
                               const totalDeduction = group.orders.reduce((s, o) => s + Number(o.payrollDeductionAmount ?? 0), 0)
                               const totalCovered = group.orders.reduce((s, o) => s + Number(o.staffCoveredAmount ?? 0), 0)
-                              return ` · Saldo: ${fmt(totalCovered)} · Desc. sueldo: ${fmt(totalDeduction)}`
+                              return `Consumo: ${fmt(group.internalAmountTotal)} · Saldo: ${fmt(totalCovered)} · Desc.: ${fmt(totalDeduction)}`
                             })()}
+                            {isMarketing && `Val. ref.: ${fmt(group.orders.reduce((s, o) => s + Number(o.saleValueAmount ?? 0), 0))}`}
+                            {isIntAcc && `Val. ref.: ${fmt(group.orders.reduce((s, o) => s + Number(o.saleValueAmount ?? 0), 0))} · Cobrado: ${fmt(group.orders.reduce((s, o) => s + Number(o.cashCollected ?? 0), 0))}`}
+                            {!isStaff && !isMarketing && !isIntAcc && group.purpose !== 'test' && `Consumo: ${fmt(group.internalAmountTotal)}`}
                           </span>
                         </div>
                         <table style={TABLE_STYLE}>
                           <thead>
                             <tr>
                               <th style={TH_STYLE}>Codigo</th>
-                              <th style={TH_STYLE}>Empleado</th>
-                              {isStaffConsumption && <th style={TH_STYLE}>Rol</th>}
+                              <th style={TH_STYLE}>{isStaff ? 'Empleado' : 'Persona'}</th>
+                              {isStaff && <th style={TH_STYLE}>Rol</th>}
                               <th style={TH_STYLE}>Nota</th>
-                              <th style={{ ...TH_STYLE, textAlign: 'right' }}>Consumo</th>
-                              {isStaffConsumption && (
-                                <>
-                                  <th style={{ ...TH_STYLE, textAlign: 'right' }}>Saldo</th>
-                                  <th style={{ ...TH_STYLE, textAlign: 'right' }}>Desc. sueldo</th>
-                                </>
-                              )}
+                              {isStaff && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Consumo</th>}
+                              {isStaff && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Saldo</th>}
+                              {isStaff && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Desc. sueldo</th>}
+                              {isMarketing && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Val. ref.</th>}
+                              {isMarketing && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Costo prod.</th>}
+                              {isMarketing && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Envío</th>}
+                              {isMarketing && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Costo total</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Cobro real</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Costo prod.</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Envío</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Costo total</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Pendiente</th>}
+                              {isIntAcc && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Resultado</th>}
+                              {!isStaff && !isMarketing && !isIntAcc && group.purpose !== 'test' && <th style={{ ...TH_STYLE, textAlign: 'right' }}>Consumo</th>}
                             </tr>
                           </thead>
                           <tbody>
                             {group.orders.map((o, i) => (
                               <tr key={o.id} style={{ background: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
-                                <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#ff9666' }}>
-                                  {o.displayOrderCode ?? o.orderCode ?? '-'}
-                                </td>
+                                <td style={{ ...TD_STYLE, fontFamily: 'monospace', fontSize: '12px', color: '#ff9666' }}>{getDisplayCode(o)}</td>
                                 <td style={{ ...TD_STYLE, color: '#ccc' }}>{o.relatedPerson ?? o.customerName ?? '-'}</td>
-                                {isStaffConsumption && (
-                                  <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>
-                                    {o.relatedPersonRole || 'otro'}
-                                  </td>
-                                )}
+                                {isStaff && <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>{o.relatedPersonRole || 'otro'}</td>}
                                 <td style={{ ...TD_STYLE, color: '#888', fontSize: '12px' }}>{o.internalNote || '—'}</td>
-                                <td style={{ ...TD_RIGHT, color: '#ff9666', fontWeight: '600' }}>
-                                  {o.orderPurpose === 'test' ? '—' : fmt(o.internalAmount ?? 0)}
-                                </td>
-                                {isStaffConsumption && (
+                                {isStaff && (
                                   <>
+                                    <td style={{ ...TD_RIGHT, color: '#ff9666', fontWeight: '600' }}>{fmt(o.internalAmount ?? 0)}</td>
                                     <td style={{ ...TD_RIGHT, color: 'var(--y)' }}>{fmt(o.staffCoveredAmount ?? 0)}</td>
                                     <td style={{ ...TD_RIGHT, color: Number(o.payrollDeductionAmount ?? 0) > 0 ? '#ef9f9f' : '#888' }}>
                                       {fmt(o.payrollDeductionAmount ?? 0)}
+                                      {Number(o.deliveryPayout ?? 0) > 0 && <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>(+{fmt(o.deliveryPayout)} envío)</span>}
                                     </td>
                                   </>
+                                )}
+                                {isMarketing && (
+                                  <>
+                                    <td style={{ ...TD_RIGHT, color: '#888' }}>{fmt(o.saleValueAmount ?? 0)}</td>
+                                    <td style={{ ...TD_RIGHT, color: '#888' }}>{(o.marketingProductCostAmount ?? 0) > 0 ? fmt(o.marketingProductCostAmount) : '—'}</td>
+                                    <td style={{ ...TD_RIGHT, color: '#888' }}>{(o.marketingDeliveryCostAmount ?? 0) > 0 ? fmt(o.marketingDeliveryCostAmount) : '—'}</td>
+                                    <td style={{ ...TD_RIGHT, color: '#a78bfa', fontWeight: '600' }}>{(o.marketingTotalCostAmount ?? 0) > 0 ? fmt(o.marketingTotalCostAmount) : '—'}</td>
+                                  </>
+                                )}
+                                {isIntAcc && (() => {
+                                  const prodCost = Number(o.internalProductCostAmount ?? o.internalCostAmount ?? 0)
+                                  const delivCost = Number(o.internalDeliveryCostAmount ?? 0)
+                                  const totalCost = Number(o.internalTotalCostAmount ?? (prodCost + delivCost))
+                                  const pending = Number(o.internalPendingAmount ?? 0)
+                                  const result = Number(o.internalResultAmount ?? (Number(o.cashCollected ?? 0) - totalCost))
+                                  return (
+                                    <>
+                                      <td style={{ ...TD_RIGHT, color: Number(o.cashCollected ?? 0) > 0 ? '#4ade80' : '#888' }}>{fmt(o.cashCollected ?? 0)}</td>
+                                      <td style={{ ...TD_RIGHT, color: '#888' }}>{prodCost > 0 ? fmt(prodCost) : '—'}</td>
+                                      <td style={{ ...TD_RIGHT, color: '#888' }}>{delivCost > 0 ? fmt(delivCost) : '—'}</td>
+                                      <td style={{ ...TD_RIGHT, color: '#888' }}>{totalCost > 0 ? fmt(totalCost) : '—'}</td>
+                                      <td style={{ ...TD_RIGHT, color: pending > 0 ? '#ff9966' : '#4ade80' }}>{totalCost > 0 ? fmt(pending) : '—'}</td>
+                                      <td style={{ ...TD_RIGHT, color: result >= 0 ? '#4ade80' : '#ff9966', fontWeight: '600' }}>{totalCost > 0 ? fmt(result) : '—'}</td>
+                                    </>
+                                  )
+                                })()}
+                                {!isStaff && !isMarketing && !isIntAcc && group.purpose !== 'test' && (
+                                  <td style={{ ...TD_RIGHT, color: '#ff9666', fontWeight: '600' }}>{fmt(o.internalAmount ?? 0)}</td>
                                 )}
                               </tr>
                             ))}
