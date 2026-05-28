@@ -52,10 +52,19 @@ export function EventPOS({ orders, saveEventOrder, user }) {
     setValidationError('')
     if (!customerName.trim()) { setValidationError('Falta el nombre del cliente.'); return }
     if (!paymentMethod) { setValidationError('Seleccioná un medio de pago.'); return }
-    if (paymentMethod === 'mixto') {
+    if (paymentMethod === 'split') {
       const ef = Number(splitPayment.efectivo) || 0
       const tr = Number(splitPayment.transferencia) || 0
-      if (ef <= 0 && tr <= 0) { setValidationError('Ingresá los montos del pago mixto.'); return }
+      const { total: orderTotal } = calcEventSubtotals(cart)
+      if (ef + tr !== orderTotal) {
+        const diff = orderTotal - (ef + tr)
+        const fmtN = n => '$' + Number(n).toLocaleString('es-AR')
+        const msg = diff > 0
+          ? `La suma de pagos debe ser igual al total. Faltan ${fmtN(diff)}.`
+          : `La suma de pagos debe ser igual al total. Sobran ${fmtN(-diff)}.`
+        setValidationError(msg)
+        return
+      }
     }
     if (cart.length === 0) { setValidationError('El carrito está vacío.'); return }
 
@@ -75,8 +84,9 @@ export function EventPOS({ orders, saveEventOrder, user }) {
         eventOrderNumber: nextNum,
         displayOrderCode,
         customerName: customerName.trim(),
-        paymentMethod,
-        splitPayment: paymentMethod === 'mixto'
+        paymentMethod: paymentMethod === 'split' ? 'split' : paymentMethod,
+        paymentLabel: paymentMethod === 'split' ? 'Efectivo + Transferencia' : null,
+        paymentSplit: paymentMethod === 'split'
           ? { efectivo: Number(splitPayment.efectivo) || 0, transferencia: Number(splitPayment.transferencia) || 0 }
           : null,
         paymentStatus: 'paid',

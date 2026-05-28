@@ -45,8 +45,16 @@ export function EventStats({ orders }) {
   const cancelled = base.filter(o => o.status === 'cancelled')
 
   const totalCobrado = active.reduce((s, o) => s + Number(o.total ?? 0), 0)
-  const efectivo = active.filter(o => o.paymentMethod === 'efectivo').reduce((s, o) => s + Number(o.total ?? 0), 0)
-  const transferencia = active.filter(o => o.paymentMethod === 'transferencia').reduce((s, o) => s + Number(o.total ?? 0), 0)
+  const efectivo = active.reduce((s, o) => {
+    if (o.paymentMethod === 'efectivo') return s + Number(o.total ?? 0)
+    if (o.paymentMethod === 'split') return s + Number(o.paymentSplit?.efectivo ?? 0)
+    return s
+  }, 0)
+  const transferencia = active.reduce((s, o) => {
+    if (o.paymentMethod === 'transferencia') return s + Number(o.total ?? 0)
+    if (o.paymentMethod === 'split') return s + Number(o.paymentSplit?.transferencia ?? 0)
+    return s
+  }, 0)
   const totalBurgerYa = active.reduce((s, o) => s + Number(o.burgerYaSubtotal ?? 0), 0)
   const totalDrinksT6 = active.reduce((s, o) => s + Number(o.drinksT6Subtotal ?? 0), 0)
 

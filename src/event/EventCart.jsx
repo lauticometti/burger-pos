@@ -212,7 +212,7 @@ export function EventCart({ cart, setCart, onSave, saving, customerName, setCust
           {[
             { id: 'efectivo', label: 'Efectivo' },
             { id: 'transferencia', label: 'Transferencia' },
-            { id: 'mixto', label: 'Mitad y mitad' },
+            { id: 'split', label: 'Ef. + Transf.' },
           ].map(m => (
             <button
               key={m.id}
@@ -229,35 +229,73 @@ export function EventCart({ cart, setCart, onSave, saving, customerName, setCust
             </button>
           ))}
         </div>
-        {paymentMethod === 'mixto' && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Efectivo</div>
-              <input
-                type="number"
-                placeholder="$0"
-                value={splitPayment.efectivo}
-                onChange={e => setSplitPayment(prev => ({ ...prev, efectivo: e.target.value }))}
-                style={{
-                  width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
-                  borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
-                  fontSize: '14px', outline: 'none',
-                }}
-              />
+        {paymentMethod === 'split' && (
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Efectivo</div>
+                <input
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  value={splitPayment.efectivo}
+                  onChange={e => {
+                    const val = Math.max(0, Number(e.target.value) || 0)
+                    const resto = Math.max(0, total - val)
+                    setSplitPayment({ efectivo: val || '', transferencia: resto || '' })
+                  }}
+                  style={{
+                    width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
+                    borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
+                    fontSize: '14px', outline: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Transferencia</div>
+                <input
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  value={splitPayment.transferencia}
+                  onChange={e => {
+                    const val = Math.max(0, Number(e.target.value) || 0)
+                    const resto = Math.max(0, total - val)
+                    setSplitPayment({ transferencia: val || '', efectivo: resto || '' })
+                  }}
+                  style={{
+                    width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
+                    borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
+                    fontSize: '14px', outline: 'none',
+                  }}
+                />
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Transferencia</div>
-              <input
-                type="number"
-                placeholder="$0"
-                value={splitPayment.transferencia}
-                onChange={e => setSplitPayment(prev => ({ ...prev, transferencia: e.target.value }))}
-                style={{
-                  width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
-                  borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
-                  fontSize: '14px', outline: 'none',
+            {/* 50/50 button + sum indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  const half = Math.floor(total / 2)
+                  setSplitPayment({ efectivo: half, transferencia: total - half })
                 }}
-              />
+                style={{
+                  padding: '5px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700,
+                  cursor: 'pointer', border: '1px solid rgba(255,198,42,0.3)',
+                  background: 'rgba(255,198,42,0.08)', color: '#FFC62A',
+                }}
+              >
+                50/50
+              </button>
+              {(() => {
+                const ef = Number(splitPayment.efectivo) || 0
+                const tr = Number(splitPayment.transferencia) || 0
+                const suma = ef + tr
+                const diff = suma - total
+                if (suma === 0) return null
+                if (diff === 0) return <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>✓ Suma correcta</span>
+                if (diff < 0) return <span style={{ fontSize: '11px', color: '#f87171', fontWeight: 600 }}>Faltan {fmt(-diff)}</span>
+                return <span style={{ fontSize: '11px', color: '#f87171', fontWeight: 600 }}>Sobran {fmt(diff)}</span>
+              })()}
             </div>
           </div>
         )}

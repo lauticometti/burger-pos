@@ -85,17 +85,17 @@ function getTimestamp(order) {
 function fmtPayment(m) {
   if (m === 'efectivo') return 'Efectivo'
   if (m === 'transferencia') return 'Transferencia'
-  if (m === 'mixto') return 'Mitad y mitad'
+  if (m === 'split') return 'Efectivo + Transferencia'
   return m ?? ''
 }
 
 function renderPaymentLines(order) {
-  if (order.paymentMethod !== 'mixto' || !order.splitPayment) {
+  if (order.paymentMethod !== 'split' || !order.paymentSplit) {
     return `<div class="row"><span class="label">Pago</span><span>${fmtPayment(order.paymentMethod)}</span></div>`
   }
-  const { efectivo, transferencia } = order.splitPayment
+  const { efectivo, transferencia } = order.paymentSplit
   return `
-    <div class="row"><span class="label">Pago</span><span>Mitad y mitad</span></div>
+    <div class="row"><span class="label">Pago</span><span>Efectivo + Transferencia</span></div>
     ${efectivo > 0 ? `<div class="row"><span class="label" style="padding-left:8px">Efectivo</span><span>${fmtPrice(efectivo)}</span></div>` : ''}
     ${transferencia > 0 ? `<div class="row"><span class="label" style="padding-left:8px">Transferencia</span><span>${fmtPrice(transferencia)}</span></div>` : ''}
   `
