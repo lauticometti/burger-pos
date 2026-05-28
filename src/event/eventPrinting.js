@@ -1,4 +1,4 @@
-import { groupBurgersForPrint } from './eventUtils'
+import { groupBurgersForPrint, getDisplayName } from './eventUtils'
 
 const CSS_TICKET = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +84,7 @@ function renderBurgerItemLines(items, showPrices) {
   const grouped = groupBurgersForPrint(items.filter(i => i.category === 'burger'))
   return grouped.map(item => {
     const qty = item.displayQty ?? 1
-    const label = `${item.sizeLabel ?? ''} ${item.name}`.trim()
+    const label = getDisplayName(item)
     const priceStr = showPrices ? fmtPrice(item.unitPrice * qty + (item.customizations?.extras ?? []).reduce((s, e) => s + e.price, 0) * qty) : ''
     const line = showPrices
       ? `<div class="row"><span>${qty}x ${label}</span><span>${priceStr}</span></div>`
@@ -102,12 +102,16 @@ function renderBurgerItemLines(items, showPrices) {
 }
 
 function renderNonBurgerBurgerYaLines(items, showPrices) {
-  return items
-    .filter(i => i.area === 'burger_ya' && i.category !== 'burger')
-    .map(i => showPrices
-      ? `<div class="row"><span>1x ${i.name}</span><span>${fmtPrice(i.unitPrice)}</span></div>`
-      : `<div class="row"><span>1x ${i.name}</span></div>`
-    ).join('')
+  const counts = {}
+  for (const i of items.filter(i => i.area === 'burger_ya' && i.category !== 'burger')) {
+    if (!counts[i.id]) counts[i.id] = { name: i.name, unitPrice: i.unitPrice, qty: 0, total: 0 }
+    counts[i.id].qty += (i.quantity ?? 1)
+    counts[i.id].total += i.totalPrice
+  }
+  return Object.values(counts).map(i => showPrices
+    ? `<div class="row"><span>${i.qty}x ${i.name}</span><span>${fmtPrice(i.total)}</span></div>`
+    : `<div class="row"><span>${i.qty}x ${i.name}</span></div>`
+  ).join('')
 }
 
 function renderDrinksLines(items, showPrices) {
