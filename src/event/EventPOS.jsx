@@ -19,6 +19,7 @@ export function EventPOS({ orders, saveEventOrder, user }) {
   const [cart, setCart] = useState([])
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [splitPayment, setSplitPayment] = useState({ efectivo: '', transferencia: '' })
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [cancelTokenRef] = useState({ current: null })
@@ -51,6 +52,11 @@ export function EventPOS({ orders, saveEventOrder, user }) {
     setValidationError('')
     if (!customerName.trim()) { setValidationError('Falta el nombre del cliente.'); return }
     if (!paymentMethod) { setValidationError('Seleccioná un medio de pago.'); return }
+    if (paymentMethod === 'mixto') {
+      const ef = Number(splitPayment.efectivo) || 0
+      const tr = Number(splitPayment.transferencia) || 0
+      if (ef <= 0 && tr <= 0) { setValidationError('Ingresá los montos del pago mixto.'); return }
+    }
     if (cart.length === 0) { setValidationError('El carrito está vacío.'); return }
 
     setSaving(true)
@@ -70,6 +76,9 @@ export function EventPOS({ orders, saveEventOrder, user }) {
         displayOrderCode,
         customerName: customerName.trim(),
         paymentMethod,
+        splitPayment: paymentMethod === 'mixto'
+          ? { efectivo: Number(splitPayment.efectivo) || 0, transferencia: Number(splitPayment.transferencia) || 0 }
+          : null,
         paymentStatus: 'paid',
         items: cart,
         burgerYaItems: cart.filter(i => i.area === 'burger_ya'),
@@ -103,6 +112,7 @@ export function EventPOS({ orders, saveEventOrder, user }) {
       setCart([])
       setCustomerName('')
       setPaymentMethod('')
+      setSplitPayment({ efectivo: '', transferencia: '' })
       setValidationError('')
       return
     } catch (err) {
@@ -276,6 +286,8 @@ export function EventPOS({ orders, saveEventOrder, user }) {
           setCustomerName={setCustomerName}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
+          splitPayment={splitPayment}
+          setSplitPayment={setSplitPayment}
           validationError={validationError}
         />
       </div>

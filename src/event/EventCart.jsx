@@ -8,7 +8,7 @@ function fmt(n) {
   return '$' + Number(n ?? 0).toLocaleString('es-AR')
 }
 
-export function EventCart({ cart, setCart, onSave, saving, customerName, setCustomerName, paymentMethod, setPaymentMethod, validationError }) {
+export function EventCart({ cart, setCart, onSave, saving, customerName, setCustomerName, paymentMethod, setPaymentMethod, splitPayment, setSplitPayment, validationError }) {
   const [clearModal, setClearModal] = useState(false)
   const [removeModal, setRemoveModal] = useState(null) // { cartItemIds, label }
   const [burgerModal, setBurgerModal] = useState(null) // single item to modify
@@ -208,23 +208,59 @@ export function EventCart({ cart, setCart, onSave, saving, customerName, setCust
             fontSize: '14px', marginBottom: '8px', outline: 'none',
           }}
         />
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          {['efectivo', 'transferencia'].map(m => (
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'efectivo', label: 'Efectivo' },
+            { id: 'transferencia', label: 'Transferencia' },
+            { id: 'mixto', label: 'Mitad y mitad' },
+          ].map(m => (
             <button
-              key={m}
-              onClick={() => setPaymentMethod(m)}
+              key={m.id}
+              onClick={() => setPaymentMethod(m.id)}
               style={{
-                flex: 1, padding: '9px', borderRadius: '8px', fontWeight: 600, fontSize: '13px',
+                flex: 1, minWidth: '80px', padding: '9px 6px', borderRadius: '8px', fontWeight: 600, fontSize: '12px',
                 cursor: 'pointer', border: '1px solid',
-                background: paymentMethod === m ? 'rgba(255,198,42,0.15)' : 'var(--panel)',
-                borderColor: paymentMethod === m ? 'rgba(255,198,42,0.6)' : 'var(--line)',
-                color: paymentMethod === m ? '#FFC62A' : 'rgba(245,245,245,0.6)',
+                background: paymentMethod === m.id ? 'rgba(255,198,42,0.15)' : 'var(--panel)',
+                borderColor: paymentMethod === m.id ? 'rgba(255,198,42,0.6)' : 'var(--line)',
+                color: paymentMethod === m.id ? '#FFC62A' : 'rgba(245,245,245,0.6)',
               }}
             >
-              {m === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+              {m.label}
             </button>
           ))}
         </div>
+        {paymentMethod === 'mixto' && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Efectivo</div>
+              <input
+                type="number"
+                placeholder="$0"
+                value={splitPayment.efectivo}
+                onChange={e => setSplitPayment(prev => ({ ...prev, efectivo: e.target.value }))}
+                style={{
+                  width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
+                  borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
+                  fontSize: '14px', outline: 'none',
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '10px', color: 'rgba(245,245,245,0.4)', marginBottom: '3px', fontWeight: 600 }}>Transferencia</div>
+              <input
+                type="number"
+                placeholder="$0"
+                value={splitPayment.transferencia}
+                onChange={e => setSplitPayment(prev => ({ ...prev, transferencia: e.target.value }))}
+                style={{
+                  width: '100%', background: 'var(--panel)', border: '1px solid var(--line)',
+                  borderRadius: '8px', padding: '8px 10px', color: 'var(--text)',
+                  fontSize: '14px', outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+        )}
         {validationError && (
           <div style={{ fontSize: '12px', color: '#f87171', marginBottom: '8px', fontWeight: 600 }}>
             {validationError}

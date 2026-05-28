@@ -87,7 +87,22 @@ function getTimestamp(order) {
 }
 
 function fmtPayment(m) {
-  return m === 'efectivo' ? 'Efectivo' : m === 'transferencia' ? 'Transferencia' : m
+  if (m === 'efectivo') return 'Efectivo'
+  if (m === 'transferencia') return 'Transferencia'
+  if (m === 'mixto') return 'Mitad y mitad'
+  return m
+}
+
+function renderPaymentLines(order) {
+  if (order.paymentMethod !== 'mixto' || !order.splitPayment) {
+    return `<div class="row"><span class="label">Pago</span><span>${fmtPayment(order.paymentMethod)}</span></div>`
+  }
+  const { efectivo, transferencia } = order.splitPayment
+  return `
+    <div class="row"><span class="label">Pago</span><span>Mitad y mitad</span></div>
+    ${efectivo > 0 ? `<div class="row"><span class="label" style="padding-left:8px">Efectivo</span><span>${fmtPrice(efectivo)}</span></div>` : ''}
+    ${transferencia > 0 ? `<div class="row"><span class="label" style="padding-left:8px">Transferencia</span><span>${fmtPrice(transferencia)}</span></div>` : ''}
+  `
 }
 
 // Renders grouped burger items with their customizations
@@ -169,7 +184,7 @@ function buildEventTicketHtml(order, type) {
       <hr class="sep">
       <div class="total-row"><span>SUBTOTAL BURGER YA</span><span>${fmtPrice(order.burgerYaSubtotal)}</span></div>
       <hr class="sep">
-      <div class="row"><span class="label">Pago</span><span>${payment}</span></div>
+      ${renderPaymentLines(order)}
       <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
       <hr class="sep">
       <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
@@ -188,7 +203,7 @@ function buildEventTicketHtml(order, type) {
       <hr class="sep">
       <div class="total-row"><span>SUBTOTAL DRINKST6</span><span>${fmtPrice(order.drinksT6Subtotal)}</span></div>
       <hr class="sep">
-      <div class="row"><span class="label">Pago</span><span>${payment}</span></div>
+      ${renderPaymentLines(order)}
       <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
       <hr class="sep">
       <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
@@ -216,7 +231,7 @@ function buildEventTicketHtml(order, type) {
       ${hasDrinks ? `<div class="row"><span class="label">Subtotal DrinksT6</span><span>${fmtPrice(order.drinksT6Subtotal)}</span></div>` : ''}
       <div class="total-row"><span>TOTAL</span><span>${fmtPrice(order.total)}</span></div>
       <hr class="sep">
-      <div class="row"><span class="label">Pago</span><span>${payment}</span></div>
+      ${renderPaymentLines(order)}
       <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
       <hr class="sep">
       <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
