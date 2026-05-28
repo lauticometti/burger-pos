@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
+import { collection, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { EVENT_BURGERS, EVENT_EXTRAS_BURGER_YA, EVENT_DRINKS_T6, BURGER_ADDONS, SIZE_LABELS } from './eventMenu'
 
@@ -49,24 +49,30 @@ function DangerZone() {
       )
       const snap = await getDocs(q)
       const total = snap.docs.length
+      console.log(`[DELETE] Encontrados ${total} docs`)
+
       let deleted = 0
       let errors = 0
+      let firstErr = null
 
-      // Firestore batch max 500 ops
-      const BATCH_SIZE = 400
-      for (let i = 0; i < snap.docs.length; i += BATCH_SIZE) {
-        const batch = writeBatch(db)
-        snap.docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref))
+      // Delete one by one to isolate errors
+      for (const d of snap.docs) {
         try {
-          await batch.commit()
-          deleted += Math.min(BATCH_SIZE, snap.docs.length - i)
-        } catch {
-          errors += Math.min(BATCH_SIZE, snap.docs.length - i)
+          console.log(`[DELETE] Intentando borrar doc id: ${d.id}`, d.ref.path)
+          await deleteDoc(d.ref)
+          deleted++
+          console.log(`[DELETE] OK: ${d.id}`)
+        } catch (err) {
+          errors++
+          console.error(`[DELETE] ERROR doc ${d.id}:`, err.code, err.message, err)
+          if (!firstErr) firstErr = { id: d.id, code: err.code, message: err.message }
         }
       }
-      setStatus({ total, deleted, errors })
+
+      setStatus({ total, deleted, errors, firstErr })
     } catch (err) {
-      setStatus({ total: '?', deleted: 0, errors: 1, errMsg: err.message })
+      console.error('[DELETE] Error general:', err)
+      setStatus({ total: '?', deleted: 0, errors: 1, errMsg: err.message, firstErr: { code: err.code, message: err.message } })
     }
   }
 
@@ -170,6 +176,13 @@ function DangerZone() {
                   <div style={{ color: 'rgba(245,245,245,0.5)' }}>Encontrados: <strong style={{ color: '#fff' }}>{status.total}</strong></div>
                   <div style={{ color: '#22c55e' }}>Borrados: <strong>{status.deleted}</strong></div>
                   {status.errors > 0 && <div style={{ color: '#f87171' }}>Errores: <strong>{status.errors}</strong></div>}
+                  {status.firstErr && (
+                    <div style={{ marginTop: '8px', background: 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '8px', fontSize: '11px', color: '#fca5a5', wordBreak: 'break-all' }}>
+                      <div><strong>Doc:</strong> {status.firstErr.id ?? '—'}</div>
+                      <div><strong>Code:</strong> {status.firstErr.code ?? '—'}</div>
+                      <div><strong>Msg:</strong> {status.firstErr.message ?? '—'}</div>
+                    </div>
+                  )}
                   {status.errMsg && <div style={{ color: '#f87171', fontSize: '11px', marginTop: '4px' }}>{status.errMsg}</div>}
                 </div>
                 <button
