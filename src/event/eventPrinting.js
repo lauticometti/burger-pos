@@ -1,4 +1,4 @@
-import { groupBurgersForPrint, getDisplayName } from './eventUtils'
+import { groupBurgersForPrint, getDisplayName, sortCartItems } from './eventUtils'
 
 const CSS_TICKET = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -133,8 +133,9 @@ function buildEventTicketHtml(order, type) {
   const num = order.displayOrderCode ?? `#${order.eventOrderNumber}`
   const name = order.customerName ?? ''
   const payment = fmtPayment(order.paymentMethod)
-  const burgerYaItems = order.items?.filter(i => i.area === 'burger_ya') ?? []
-  const drinksItems = order.items?.filter(i => i.area === 'drinks_t6') ?? []
+  const allItems = sortCartItems(order.items ?? [])
+  const burgerYaItems = allItems.filter(i => i.area === 'burger_ya')
+  const drinksItems = allItems.filter(i => i.area === 'drinks_t6')
   const isCancelled = order.status === 'cancelled'
   const cancelledBanner = isCancelled
     ? `<div class="tag" style="border:2px solid #000;padding:3px;margin:4px 0;">*** CANCELADO ***</div>`
@@ -144,7 +145,7 @@ function buildEventTicketHtml(order, type) {
 
   if (type === 'cliente_burgers') {
     const burgerLines = renderBurgerItemLines(burgerYaItems, true)
-    const extraLines = renderNonBurgerBurgerYaLines(order.items ?? [], true)
+    const extraLines = renderNonBurgerBurgerYaLines(allItems, true)
     body = `<div class="ticket">
       <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
       <div class="title">${num}</div>
@@ -163,7 +164,7 @@ function buildEventTicketHtml(order, type) {
     </div>`
 
   } else if (type === 'cliente_tragos') {
-    const drinkLines = renderDrinksLines(order.items ?? [], true)
+    const drinkLines = renderDrinksLines(allItems, true)
     body = `<div class="ticket">
       <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
       <div class="title">${num}</div>
@@ -183,8 +184,8 @@ function buildEventTicketHtml(order, type) {
 
   } else if (type === 'caja') {
     const burgerLines = renderBurgerItemLines(burgerYaItems, true)
-    const extraLines = renderNonBurgerBurgerYaLines(order.items ?? [], true)
-    const drinkLines = renderDrinksLines(order.items ?? [], true)
+    const extraLines = renderNonBurgerBurgerYaLines(allItems, true)
+    const drinkLines = renderDrinksLines(allItems, true)
     const hasBurgers = burgerYaItems.length > 0
     const hasDrinks = drinksItems.length > 0
     body = `<div class="ticket">
@@ -212,7 +213,7 @@ function buildEventTicketHtml(order, type) {
   } else if (type === 'cocina_plancha' || type === 'cocina_armado' || type === 'cocina_despacho') {
     const titleMap = { cocina_plancha: 'COCINA · PLANCHA', cocina_armado: 'COCINA · ARMADO', cocina_despacho: 'COCINA · DESPACHO' }
     const burgerLines = renderBurgerItemLines(burgerYaItems, false)
-    const extraLines = renderNonBurgerBurgerYaLines(order.items ?? [], false)
+    const extraLines = renderNonBurgerBurgerYaLines(allItems, false)
     body = `<div class="ticket">
       <div class="section-title">${titleMap[type]}</div>
       <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
@@ -226,7 +227,7 @@ function buildEventTicketHtml(order, type) {
     </div>`
 
   } else if (type === 'barra') {
-    const drinkLines = renderDrinksLines(order.items ?? [], false)
+    const drinkLines = renderDrinksLines(allItems, false)
     body = `<div class="ticket">
       <div class="section-title">BARRA</div>
       <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>

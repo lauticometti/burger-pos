@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { EventModal } from './EventModal'
 import { printEventTicket, printEventTickets, getApplicableTicketTypes } from './eventPrinting'
-import { getDisplayName, groupBurgersForPrint } from './eventUtils'
+import { getDisplayName, groupBurgersForPrint, sortCartItems } from './eventUtils'
 
 function fmt(n) { return '$' + Number(n ?? 0).toLocaleString('es-AR') }
 
@@ -157,7 +157,7 @@ function OrderCard({ order, updateKitchenStatus, updateBarStatus, cancelOrder, u
       {detailOpen && (
         <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
           {/* Items — grouped */}
-          {groupBurgersForPrint(order.items ?? []).map((item, i) => {
+          {groupBurgersForPrint(sortCartItems(order.items ?? [])).map((item, i) => {
             const qty = item.displayQty ?? 1
             const isBurger = item.category === 'burger'
             const displayQtyStr = isBurger

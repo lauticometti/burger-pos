@@ -1,5 +1,30 @@
 import { SIZE_LABELS } from './eventMenu'
 
+// Fixed display order for cart, tickets, and detail views
+const ITEM_SORT_ORDER = {
+  // burgers by id
+  salsa: [1, 1], american: [1, 2], bbqueen: [1, 3], smoklahoma: [1, 4],
+  // extras burger_ya
+  papas: [2, 1], dip: [3, 1], coca_600: [4, 1], coca_225: [4, 2],
+  // drinks_t6
+  fernet: [5, 1], caipiroska: [5, 2], tropicana: [5, 3],
+  cherry: [5, 4], gin_tonic: [5, 5], gin_frutos: [5, 6],
+}
+
+function getItemSortKey(item) {
+  const order = ITEM_SORT_ORDER[item.id]
+  if (!order) return [9, 9]
+  return order
+}
+
+export function sortCartItems(items) {
+  return [...items].sort((a, b) => {
+    const [ca, ia] = getItemSortKey(a)
+    const [cb, ib] = getItemSortKey(b)
+    return ca !== cb ? ca - cb : ia - ib
+  })
+}
+
 export function calcEventSubtotals(cart) {
   let burgerYaSubtotal = 0
   let drinksT6Subtotal = 0

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { calcEventSubtotals, getDisplayName, groupCartForDisplay } from './eventUtils'
+import { calcEventSubtotals, getDisplayName, groupCartForDisplay, sortCartItems } from './eventUtils'
 import { EVENT_BURGERS } from './eventMenu'
 import { EventModal } from './EventModal'
 import { EventBurgerModal } from './EventBurgerModal'
@@ -17,7 +17,7 @@ export function EventCart({ cart, setCart, onSave, saving, customerName, setCust
   const hasBurgerYa = cart.some(i => i.area === 'burger_ya')
   const hasDrinksT6 = cart.some(i => i.area === 'drinks_t6')
 
-  const groups = groupCartForDisplay(cart)
+  const groups = groupCartForDisplay(sortCartItems(cart))
 
   function removeItems(cartItemIds) {
     setCart(prev => prev.filter(i => !cartItemIds.includes(i.cartItemId)))
