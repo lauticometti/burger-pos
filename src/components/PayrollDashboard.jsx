@@ -1,6 +1,4 @@
 import { useState, useMemo } from 'react'
-import { updateDoc, doc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../firebase/config'
 import { calculatePayrollSummary } from '../utils/payrollUtils'
 import { addSalaryAdvance, addSalaryPayment, addWorkShift, addDeliveryShift } from '../utils/staffLedger'
 import { normalizeStaffMember } from '../hooks/useStaffMembers'
@@ -840,7 +838,7 @@ function consumoMetrics(row) {
   ]
 }
 
-function EmployeeCard({ row, weekRange, user, onAction }) {
+function EmployeeCard({ row, onAction }) {
   const isPending  = row.pendiente > 0
   const isPaid     = row.estado === 'pagado'
   const noSalary   = row.estado === 'sin_sueldo'
@@ -1120,7 +1118,8 @@ export function PayrollDashboard({ staffMembers, weekLedger, loadingLedger, staf
 
   const summary = useMemo(
     () => calculatePayrollSummary(normalizedMembers, weekLedger, weekRange, orders),
-    [normalizedMembers, weekLedger, weekRange, orders]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [normalizedMembers, weekLedger, staffWeek, orders]
   )
 
   const sinSueldoCount = summary.rows.filter(r => r.estado === 'sin_sueldo' || r.estado === 'sin_turnos' || r.estado === 'sin_jornadas').length

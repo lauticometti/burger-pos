@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { EventMode } from "./event/EventMode";
 import { ProductButtons } from "./components/ProductButtons";
 import { CartSummary } from "./components/CartSummary";
 import { OrderForm } from "./components/OrderForm";
@@ -14,17 +15,6 @@ import { saveOrderToStorage, loadOrderFromStorage, clearOrderFromStorage } from 
 import { printTicket, printTickets, todayStr } from "./utils/printing";
 import { addStaffLedgerEntry } from "./utils/staffLedger";
 import { calcOrderTotals, getItemLineTotal, buildOrderDefaults, sanitizeOrderData } from "./utils/orderUtils";
-
-function isSameDay(firestoreTimestamp) {
-  if (!firestoreTimestamp) return false;
-  const d = firestoreTimestamp.toDate ? firestoreTimestamp.toDate() : new Date(firestoreTimestamp);
-  const today = new Date();
-  return (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  );
-}
 
 export default function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
@@ -315,6 +305,7 @@ export default function App() {
             <div className="navbar-right">
               <button onClick={() => setStep('dashboard')} className="nav-button small active">Ventas</button>
               <button onClick={() => setStep('staff')} className="nav-button small">Staff</button>
+              <button onClick={() => setStep('event')} className="nav-button small" style={{ borderColor: 'rgba(255,198,42,0.4)', color: '#FFC62A' }}>Evento</button>
               <button onClick={() => setStep('instrucciones')} className="nav-button small">Ayuda</button>
               <button onClick={signOut} className="nav-button small exit">Salir</button>
             </div>
@@ -444,6 +435,8 @@ export default function App() {
       )}
 
       {step === "dashboard" && <DailyDashboard onBack={() => setStep('menu')} />}
+
+      {step === "event" && <EventMode onBack={() => setStep('menu')} user={user} />}
 
       {step === "confirm" && (
         <div>

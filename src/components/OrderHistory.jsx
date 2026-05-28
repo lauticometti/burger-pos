@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/config'
-import { getDisplayCode, getItemDisplayName, getItemLineTotal, getOrderGrossTotal, getOrderNetRevenue } from '../utils/orderUtils'
+import { getDisplayCode, getItemDisplayName, getItemLineTotal, getOrderNetRevenue } from '../utils/orderUtils'
 import { getStaffBurgerSizeLabel, calculateStaffBurgerTotal } from '../utils/staffOrderBuilder'
 import { STAFF_ADDON_LABELS, STAFF_VEGETABLE_LABELS, STAFF_EXTRA_LABELS, STAFF_PRICES } from '../data/staffMenu'
 
@@ -119,7 +119,6 @@ function ExpandedDetail({ order }) {
   const deliverySurcharge = Number(order.deliverySurcharge ?? 0)
   const deliveryPayout = Number(order.deliveryPayout ?? 0)
   const netRevenue = getOrderNetRevenue(order)
-  const grossTotal = getOrderGrossTotal(order)
   const discountAmount = Number(order.discountAmount ?? 0)
   const allocations = order.internalAllocations || []
 

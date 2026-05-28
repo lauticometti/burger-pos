@@ -12,7 +12,6 @@ import {
 import {
   createEmptyStaffBurger,
   duplicateStaffBurger,
-  getStaffBurgerSizeLabel,
   calculateStaffBurgerTotal,
   calculateStaffOrderTotal,
 } from '../utils/staffOrderBuilder'
@@ -184,8 +183,11 @@ export function InternalOrderForm({ cart, onSave, user }) {
   const internalAmount = internalAllocations.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0)
 
   useEffect(() => {
-    setStaffBurgers([createEmptyStaffBurger()])
-    setStaffExtras({ ...EMPTY_EXTRAS })
+    const initialBurgers = [createEmptyStaffBurger()]
+    const initialExtras = { ...EMPTY_EXTRAS }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStaffBurgers(initialBurgers)
+    setStaffExtras(initialExtras)
     setSelectedStaff('')
     setSelectedStaffRole('')
     setFreeRelatedPerson('')
@@ -212,7 +214,11 @@ export function InternalOrderForm({ cart, onSave, user }) {
   }, [orderPurpose])
 
   useEffect(() => {
-    if (!isStaffPurpose || !selectedStaff) { setStaffBalance(null); return }
+    if (!isStaffPurpose || !selectedStaff) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStaffBalance(null)
+      return
+    }
     setLoadingBalance(true)
     loadStaffBalance(selectedStaff, isDelivery, selectedDate)
       .then(bal => setStaffBalance(bal))
@@ -221,7 +227,11 @@ export function InternalOrderForm({ cart, onSave, user }) {
   }, [selectedStaff, isStaffPurpose, isDelivery, selectedDate])
 
   useEffect(() => {
-    if (!hasDelivery) { setDeliveryStaffId(''); setDeliveryStaffName('') }
+    if (!hasDelivery) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDeliveryStaffId('')
+      setDeliveryStaffName('')
+    }
   }, [hasDelivery])
 
   useEffect(() => {

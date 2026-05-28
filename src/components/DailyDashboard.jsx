@@ -81,9 +81,10 @@ export function DailyDashboard({ onBack }) {
   const [expandedOrderId, setExpandedOrderId] = useState(null)
 
   useEffect(() => {
+    const q = query(collection(db, 'orders'), where('businessDate', '==', date))
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
-    const q = query(collection(db, 'orders'), where('businessDate', '==', date))
     getDocs(q)
       .then(snapshot => {
         setOrders(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
