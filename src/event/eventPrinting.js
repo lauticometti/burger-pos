@@ -64,6 +64,17 @@ function printViaIframe(html) {
   })
 }
 
+function getEventBranding() {
+  const now = new Date()
+  // "HAPPY BURGER DAY" from now until Friday 2026-05-29 17:00 ART (UTC-3 = 20:00 UTC)
+  // After that, revert to original until Friday 2026-05-30 06:00 ART (09:00 UTC)
+  const endHappyUTC = new Date('2026-05-29T20:00:00Z')
+  const endEventUTC = new Date('2026-05-30T09:00:00Z')
+  if (now < endHappyUTC) return 'HAPPY BURGER DAY'
+  if (now < endEventUTC) return 'BURGER YA x DRINKST6'
+  return 'BURGER YA x DRINKST6'
+}
+
 function fmtPrice(n) {
   return '$' + Number(n ?? 0).toLocaleString('es-AR')
 }
@@ -130,6 +141,7 @@ function renderDrinksLines(items, showPrices) {
 
 function buildEventTicketHtml(order, type) {
   const { hora, fecha } = getTimestamp(order)
+  const branding = getEventBranding()
   const num = order.displayOrderCode ?? `#${order.eventOrderNumber}`
   const name = order.customerName ?? ''
   const payment = fmtPayment(order.paymentMethod)
@@ -147,7 +159,7 @@ function buildEventTicketHtml(order, type) {
     const burgerLines = renderBurgerItemLines(burgerYaItems, true)
     const extraLines = renderNonBurgerBurgerYaLines(allItems, true)
     body = `<div class="ticket">
-      <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
+      <div class="subtitle" style="font-size:11px;">${branding}</div>
       <div class="title">${num}</div>
       ${cancelledBanner}
       <div class="tag">RETIRO BURGERS</div>
@@ -166,7 +178,7 @@ function buildEventTicketHtml(order, type) {
   } else if (type === 'cliente_tragos') {
     const drinkLines = renderDrinksLines(allItems, true)
     body = `<div class="ticket">
-      <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
+      <div class="subtitle" style="font-size:11px;">${branding}</div>
       <div class="title">${num}</div>
       ${cancelledBanner}
       <div class="tag">RETIRO TRAGOS</div>
@@ -190,7 +202,7 @@ function buildEventTicketHtml(order, type) {
     const hasDrinks = drinksItems.length > 0
     body = `<div class="ticket">
       <div class="section-title">CAJA</div>
-      <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
+      <div class="subtitle" style="font-size:11px;">${branding}</div>
       <hr class="sep-solid">
       <div class="title">${num}</div>
       ${cancelledBanner}
@@ -216,7 +228,7 @@ function buildEventTicketHtml(order, type) {
     const extraLines = renderNonBurgerBurgerYaLines(allItems, false)
     body = `<div class="ticket">
       <div class="section-title">${titleMap[type]}</div>
-      <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
+      <div class="subtitle" style="font-size:11px;">${branding}</div>
       <hr class="sep-solid">
       <div class="title">${num}</div>
       <div class="subtitle">${name}</div>
@@ -230,7 +242,7 @@ function buildEventTicketHtml(order, type) {
     const drinkLines = renderDrinksLines(allItems, false)
     body = `<div class="ticket">
       <div class="section-title">BARRA</div>
-      <div class="subtitle" style="font-size:11px;">BURGER YA x DRINKST6</div>
+      <div class="subtitle" style="font-size:11px;">${branding}</div>
       <hr class="sep-solid">
       <div class="title">${num}</div>
       <div class="subtitle">${name}</div>
