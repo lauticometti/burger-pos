@@ -59,7 +59,7 @@ function printViaIframe(html) {
       setTimeout(() => {
         document.body.removeChild(iframe)
         resolve()
-      }, 1500)
+      }, 800)
     }
   })
 }
@@ -276,7 +276,7 @@ export async function printEventTickets(order, cancelToken = null) {
     if (cancelToken?.cancelled) break
     await printViaIframe(buildEventTicketHtml(order, type))
     if (cancelToken?.cancelled) break
-    await new Promise(r => setTimeout(r, 700))
+    await new Promise(r => setTimeout(r, 300))
   }
 }
 
