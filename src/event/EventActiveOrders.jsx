@@ -65,11 +65,9 @@ function OrderCard({ order, updateKitchenStatus, updateBarStatus, cancelOrder, u
 
   const applicable = getApplicableTicketTypes(order)
   const REPRINT_LABELS = {
-    cliente_burgers: 'Cliente burgers',
-    cliente_tragos: 'Cliente tragos',
+    cliente: 'Cliente',
     caja: 'Caja',
     cocina_plancha: 'Plancha',
-    cocina_armado: 'Armado',
     cocina_despacho: 'Despacho',
     barra: 'Barra',
   }

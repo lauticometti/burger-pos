@@ -25,8 +25,8 @@ const CSS_TICKET = `
   .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 12px; }
   .label { color: #555; font-size: 11px; }
   .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 4px; }
-  .tag { font-size: 11px; font-weight: bold; text-align: center; margin: 3px 0; }
   .section-title { font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 3px; margin: 4px 0; }
+  .section-label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #555; margin: 5px 0 2px 0; }
   .mod-line { font-size: 10px; padding-left: 12px; margin: 1px 0; color: #333; }
   @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -66,12 +66,8 @@ function printViaIframe(html) {
 
 function getEventBranding() {
   const now = new Date()
-  // "HAPPY BURGER DAY" from now until Friday 2026-05-29 17:00 ART (UTC-3 = 20:00 UTC)
-  // After that, revert to original until Friday 2026-05-30 06:00 ART (09:00 UTC)
   const endHappyUTC = new Date('2026-05-29T20:00:00Z')
-  const endEventUTC = new Date('2026-05-30T09:00:00Z')
   if (now < endHappyUTC) return 'HAPPY BURGER DAY'
-  if (now < endEventUTC) return 'BURGER YA x DRINKST6'
   return 'BURGER YA x DRINKST6'
 }
 
@@ -90,7 +86,7 @@ function fmtPayment(m) {
   if (m === 'efectivo') return 'Efectivo'
   if (m === 'transferencia') return 'Transferencia'
   if (m === 'mixto') return 'Mitad y mitad'
-  return m
+  return m ?? ''
 }
 
 function renderPaymentLines(order) {
@@ -105,7 +101,6 @@ function renderPaymentLines(order) {
   `
 }
 
-// Renders grouped burger items with their customizations
 function renderBurgerItemLines(items, showPrices) {
   const grouped = groupBurgersForPrint(items.filter(i => i.category === 'burger'))
   return grouped.map(item => {
@@ -130,7 +125,7 @@ function renderBurgerItemLines(items, showPrices) {
 function renderNonBurgerBurgerYaLines(items, showPrices) {
   const counts = {}
   for (const i of items.filter(i => i.area === 'burger_ya' && i.category !== 'burger')) {
-    if (!counts[i.id]) counts[i.id] = { name: i.name, unitPrice: i.unitPrice, qty: 0, total: 0 }
+    if (!counts[i.id]) counts[i.id] = { name: i.name, qty: 0, total: 0 }
     counts[i.id].qty += (i.quantity ?? 1)
     counts[i.id].total += i.totalPrice
   }
@@ -141,14 +136,13 @@ function renderNonBurgerBurgerYaLines(items, showPrices) {
 }
 
 function renderDrinksLines(items, showPrices) {
-  // Each drink item already stores quantity (e.g. qty=2 for "2 Fernet" promo)
-  const drinkCounts = {}
+  const counts = {}
   for (const item of items.filter(i => i.area === 'drinks_t6')) {
-    if (!drinkCounts[item.id]) drinkCounts[item.id] = { name: item.name, price: item.unitPrice, qty: 0, total: 0 }
-    drinkCounts[item.id].qty += (item.quantity ?? 1)
-    drinkCounts[item.id].total += item.totalPrice
+    if (!counts[item.id]) counts[item.id] = { name: item.name, qty: 0, total: 0 }
+    counts[item.id].qty += (item.quantity ?? 1)
+    counts[item.id].total += item.totalPrice
   }
-  return Object.values(drinkCounts).map(d => showPrices
+  return Object.values(counts).map(d => showPrices
     ? `<div class="row"><span>${d.qty} ${d.name}</span><span>${fmtPrice(d.total)}</span></div>`
     : `<div class="row"><span>${d.qty} ${d.name}</span></div>`
   ).join('')
@@ -159,10 +153,11 @@ function buildEventTicketHtml(order, type) {
   const branding = getEventBranding()
   const num = order.displayOrderCode ?? `#${order.eventOrderNumber}`
   const name = order.customerName ?? ''
-  const payment = fmtPayment(order.paymentMethod)
   const allItems = sortCartItems(order.items ?? [])
   const burgerYaItems = allItems.filter(i => i.area === 'burger_ya')
   const drinksItems = allItems.filter(i => i.area === 'drinks_t6')
+  const hasBurgers = burgerYaItems.length > 0
+  const hasDrinks = drinksItems.length > 0
   const isCancelled = order.status === 'cancelled'
   const cancelledBanner = isCancelled
     ? `<div class="tag" style="border:2px solid #000;padding:3px;margin:4px 0;">*** CANCELADO ***</div>`
@@ -170,42 +165,25 @@ function buildEventTicketHtml(order, type) {
 
   let body = ''
 
-  if (type === 'cliente_burgers') {
+  if (type === 'cliente') {
     const burgerLines = renderBurgerItemLines(burgerYaItems, true)
     const extraLines = renderNonBurgerBurgerYaLines(allItems, true)
-    body = `<div class="ticket">
-      <div class="subtitle" style="font-size:11px;">${branding}</div>
-      <div class="title">${num}</div>
-      ${cancelledBanner}
-      <div class="tag">RETIRO BURGERS</div>
-      <div class="subtitle">${name}</div>
-      <hr class="sep">
-      ${burgerLines}${extraLines}
-      <hr class="sep">
-      <div class="total-row"><span>SUBTOTAL BURGER YA</span><span>${fmtPrice(order.burgerYaSubtotal)}</span></div>
-      <hr class="sep">
-      ${renderPaymentLines(order)}
-      <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
-      <hr class="sep">
-      <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
-    </div>`
-
-  } else if (type === 'cliente_tragos') {
     const drinkLines = renderDrinksLines(allItems, true)
     body = `<div class="ticket">
       <div class="subtitle" style="font-size:11px;">${branding}</div>
       <div class="title">${num}</div>
       ${cancelledBanner}
-      <div class="tag">RETIRO TRAGOS</div>
       <div class="subtitle">${name}</div>
       <hr class="sep">
-      ${drinkLines}
+      ${hasBurgers ? `<div class="section-label">Burger Ya</div>${burgerLines}${extraLines}` : ''}
+      ${hasBurgers && hasDrinks ? '<hr class="sep">' : ''}
+      ${hasDrinks ? `<div class="section-label">DrinksT6</div>${drinkLines}` : ''}
       <hr class="sep">
-      <div class="total-row"><span>SUBTOTAL DRINKST6</span><span>${fmtPrice(order.drinksT6Subtotal)}</span></div>
+      ${hasBurgers ? `<div class="row"><span class="label">Subtotal Burger Ya</span><span>${fmtPrice(order.burgerYaSubtotal)}</span></div>` : ''}
+      ${hasDrinks ? `<div class="row"><span class="label">Subtotal DrinksT6</span><span>${fmtPrice(order.drinksT6Subtotal)}</span></div>` : ''}
+      <div class="total-row"><span>TOTAL</span><span>${fmtPrice(order.total)}</span></div>
       <hr class="sep">
       ${renderPaymentLines(order)}
-      <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
-      <hr class="sep">
       <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
     </div>`
 
@@ -213,8 +191,6 @@ function buildEventTicketHtml(order, type) {
     const burgerLines = renderBurgerItemLines(burgerYaItems, true)
     const extraLines = renderNonBurgerBurgerYaLines(allItems, true)
     const drinkLines = renderDrinksLines(allItems, true)
-    const hasBurgers = burgerYaItems.length > 0
-    const hasDrinks = drinksItems.length > 0
     body = `<div class="ticket">
       <div class="section-title">CAJA</div>
       <div class="subtitle" style="font-size:11px;">${branding}</div>
@@ -223,22 +199,20 @@ function buildEventTicketHtml(order, type) {
       ${cancelledBanner}
       <div class="subtitle">${name}</div>
       <hr class="sep">
-      ${hasBurgers ? burgerLines + extraLines : ''}
+      ${hasBurgers ? `<div class="section-label">Burger Ya</div>${burgerLines}${extraLines}` : ''}
       ${hasBurgers && hasDrinks ? '<hr class="sep">' : ''}
-      ${hasDrinks ? drinkLines : ''}
+      ${hasDrinks ? `<div class="section-label">DrinksT6</div>${drinkLines}` : ''}
       <hr class="sep">
       ${hasBurgers ? `<div class="row"><span class="label">Subtotal Burger Ya</span><span>${fmtPrice(order.burgerYaSubtotal)}</span></div>` : ''}
       ${hasDrinks ? `<div class="row"><span class="label">Subtotal DrinksT6</span><span>${fmtPrice(order.drinksT6Subtotal)}</span></div>` : ''}
       <div class="total-row"><span>TOTAL</span><span>${fmtPrice(order.total)}</span></div>
       <hr class="sep">
       ${renderPaymentLines(order)}
-      <div class="row"><span class="label">Estado</span><span>PAGADO</span></div>
-      <hr class="sep">
       <div class="center" style="font-size:10px;">${hora} · ${fecha}</div>
     </div>`
 
-  } else if (type === 'cocina_plancha' || type === 'cocina_armado' || type === 'cocina_despacho') {
-    const titleMap = { cocina_plancha: 'COCINA · PLANCHA', cocina_armado: 'COCINA · ARMADO', cocina_despacho: 'COCINA · DESPACHO' }
+  } else if (type === 'cocina_plancha' || type === 'cocina_despacho') {
+    const titleMap = { cocina_plancha: 'COCINA · PLANCHA', cocina_despacho: 'COCINA · DESPACHO' }
     const burgerLines = renderBurgerItemLines(burgerYaItems, false)
     const extraLines = renderNonBurgerBurgerYaLines(allItems, false)
     body = `<div class="ticket">
@@ -280,11 +254,9 @@ export async function printEventTickets(order, cancelToken = null) {
   const hasBurgerYa = (order.items ?? []).some(i => i.area === 'burger_ya')
   const hasDrinksT6 = (order.items ?? []).some(i => i.area === 'drinks_t6')
 
-  const types = []
-  types.push('caja')
-  if (hasBurgerYa) types.push('cliente_burgers')
-  if (hasDrinksT6) types.push('cliente_tragos')
-  if (hasBurgerYa) types.push('cocina_plancha', 'cocina_armado', 'cocina_despacho')
+  // Order: caja → cliente → cocina_plancha → cocina_despacho → barra
+  const types = ['caja', 'cliente']
+  if (hasBurgerYa) types.push('cocina_plancha', 'cocina_despacho')
   if (hasDrinksT6) types.push('barra')
 
   for (const type of types) {
@@ -299,11 +271,9 @@ export function getApplicableTicketTypes(order) {
   const hasBurgerYa = (order.items ?? []).some(i => i.area === 'burger_ya')
   const hasDrinksT6 = (order.items ?? []).some(i => i.area === 'drinks_t6')
   return {
-    cliente_burgers: hasBurgerYa,
-    cliente_tragos: hasDrinksT6,
+    cliente: true,
     caja: true,
     cocina_plancha: hasBurgerYa,
-    cocina_armado: hasBurgerYa,
     cocina_despacho: hasBurgerYa,
     barra: hasDrinksT6,
   }
