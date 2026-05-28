@@ -253,9 +253,9 @@ export async function printEventTickets(order, cancelToken = null) {
   const hasDrinksT6 = (order.items ?? []).some(i => i.area === 'drinks_t6')
 
   const types = []
+  types.push('caja')
   if (hasBurgerYa) types.push('cliente_burgers')
   if (hasDrinksT6) types.push('cliente_tragos')
-  types.push('caja')
   if (hasBurgerYa) types.push('cocina_plancha', 'cocina_armado', 'cocina_despacho')
   if (hasDrinksT6) types.push('barra')
 
