@@ -14,8 +14,7 @@ const BTN = {
   },
 }
 
-export function EventPOS({ orders, saveEventOrder, user }) {
-  const [shift, setShift] = useState('midday')
+export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
   const [cart, setCart] = useState([])
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -143,11 +142,11 @@ export function EventPOS({ orders, saveEventOrder, user }) {
 
         {/* Shift selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', color: 'rgba(245,245,245,0.5)', fontWeight: 600 }}>Turno:</span>
           {Object.entries(SHIFT_LABELS).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => handleShiftChange(key)}
+              onDoubleClick={() => handleShiftChange(key)}
+              title="Doble click para cambiar de turno"
               style={{
                 ...BTN.base,
                 padding: '6px 14px', fontSize: '13px',
@@ -159,18 +158,6 @@ export function EventPOS({ orders, saveEventOrder, user }) {
               {label}
             </button>
           ))}
-          <button
-            onClick={() => {
-              const other = shift === 'midday' ? 'night' : 'midday'
-              handleShiftChange(other)
-            }}
-            style={{
-              background: 'none', border: 'none', color: 'rgba(245,245,245,0.35)',
-              fontSize: '12px', cursor: 'pointer', textDecoration: 'underline',
-            }}
-          >
-            Cambiar turno
-          </button>
         </div>
 
         {/* Burgers section */}

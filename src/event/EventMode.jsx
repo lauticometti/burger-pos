@@ -16,6 +16,8 @@ const TABS = [
 
 export function EventMode({ onBack, user }) {
   const [tab, setTab] = useState('pos')
+  // Turno elevado acá para que sobreviva al cambio de tab (EventPOS se desmonta al navegar)
+  const [shift, setShift] = useState('midday')
   const { orders, loading, indexError, saveEventOrder, updateKitchenStatus, updateBarStatus, cancelOrder } = useEventOrders()
 
   const activeCount = orders.filter(o => o.status !== 'cancelled').length
@@ -104,7 +106,7 @@ export function EventMode({ onBack, user }) {
           </div>
         )}
         {!loading && tab === 'pos' && (
-          <EventPOS orders={orders} saveEventOrder={saveEventOrder} user={user} />
+          <EventPOS orders={orders} saveEventOrder={saveEventOrder} user={user} shift={shift} setShift={setShift} />
         )}
         {!loading && tab === 'active' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
