@@ -16,8 +16,8 @@ export const MENU_BURGERS = [
   { id: 'cheese',     name: 'Cheese',     productOrder: 2, prices: { simple: 10500, doble: 14000, triple: 17500 } },
   { id: 'bacon',      name: 'Bacon',      productOrder: 3, prices: { simple: 11500, doble: 15000, triple: 18500 } },
   { id: 'american',   name: 'American',   productOrder: 4, prices: { simple: 11500, doble: 15000, triple: 18500 } },
-  { id: 'lautiboom',  name: 'Lautiboom',  productOrder: 5, prices: { simple: 11500, doble: 15000, triple: 18500 } },
-  { id: 'bbqueen',    name: 'BBQueen',    productOrder: 6, prices: { simple: 12000, doble: 15500, triple: 19000 } },
+  { id: 'lautiboom',  name: 'Lautiboom',  productOrder: 5, prices: { simple: 11500, doble: 15000, triple: 18500 }, unavailable: true },
+  { id: 'bbqueen',    name: 'BBQueen',    productOrder: 6, prices: { simple: 12000, doble: 15500, triple: 19000 }, unavailable: true },
   { id: 'smoklahoma', name: 'Smoklahoma', productOrder: 7, prices: { simple: 12000, doble: 15500, triple: 19000 } },
 ]
 

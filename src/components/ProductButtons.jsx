@@ -305,6 +305,7 @@ export function ProductButtons({ cart, setCart }) {
           }}>
             {MENU_BURGERS.map((burger, idx) => {
               const isPromo = burger.id === burgerDelDiaId
+              const isUnavailable = burger.unavailable === true
               return (
                 <div key={burger.id} style={{
                   display: 'flex',
@@ -313,15 +314,28 @@ export function ProductButtons({ cart, setCart }) {
                   padding: '10px 16px',
                   minHeight: '76px',
                   borderTop: idx === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)',
-                  background: isPromo ? 'rgba(255,198,42,0.03)' : 'transparent',
-                  borderLeft: isPromo ? '3px solid rgba(255,198,42,0.5)' : '3px solid transparent',
+                  background: isUnavailable ? 'rgba(255,255,255,0.01)' : isPromo ? 'rgba(255,198,42,0.03)' : 'transparent',
+                  borderLeft: isUnavailable ? '3px solid rgba(255,80,80,0.5)' : isPromo ? '3px solid rgba(255,198,42,0.5)' : '3px solid transparent',
+                  opacity: isUnavailable ? 0.6 : 1,
                 }}>
                   {/* Nombre */}
                   <div style={{ width: 'clamp(70px, 18%, 110px)', flexShrink: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text)', lineHeight: 1.2 }}>
                       {burger.name}
                     </div>
-                    {isPromo && (
+                    {isUnavailable && (
+                      <div style={{
+                        fontSize: '10px', fontWeight: '700', color: '#ff5050',
+                        marginTop: '4px',
+                        background: 'rgba(255,80,80,0.12)',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                        display: 'inline-block',
+                      }}>
+                        No disponible
+                      </div>
+                    )}
+                    {!isUnavailable && isPromo && (
                       <div style={{
                         fontSize: '10px', fontWeight: '700', color: 'var(--y)',
                         marginTop: '4px',
@@ -336,7 +350,7 @@ export function ProductButtons({ cart, setCart }) {
                   </div>
 
                   {/* Botones */}
-                  <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '8px', flex: 1, pointerEvents: isUnavailable ? 'none' : 'auto' }}>
                     {MENU_BURGER_SIZES.map(s => {
                       const base = burger.prices[s.size]
                       const promoPrice = base - BURGER_DEL_DIA_DESCUENTO
@@ -346,7 +360,7 @@ export function ProductButtons({ cart, setCart }) {
                           label={s.label}
                           price={base}
                           promoPrice={promoPrice}
-                          isPromo={isPromo}
+                          isPromo={!isUnavailable && isPromo}
                           onClick={() => handleMenuBurger(burger, s)}
                         />
                       )
