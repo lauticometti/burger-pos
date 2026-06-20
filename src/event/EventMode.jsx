@@ -17,7 +17,7 @@ const TABS = [
 export function EventMode({ onBack, user }) {
   const [tab, setTab] = useState('pos')
   // Turno elevado acá para que sobreviva al cambio de tab (EventPOS se desmonta al navegar)
-  const [shift, setShift] = useState('midday')
+  const [shift, setShift] = useState('night')
   const { orders, loading, indexError, saveEventOrder, updateKitchenStatus, updateBarStatus, cancelOrder } = useEventOrders()
 
   const activeCount = orders.filter(o => o.status !== 'cancelled').length
@@ -44,10 +44,10 @@ export function EventMode({ onBack, user }) {
             ← POS
           </button>
           <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFC62A', letterSpacing: '0.02em' }}>
-            BURGER DAY
+            BURGER YA
           </span>
           <span style={{ fontSize: '11px', color: 'rgba(245,245,245,0.4)' }}>
-            Burger Ya × DrinksT6
+            CUMPLE 2 AÑOS
           </span>
         </div>
 

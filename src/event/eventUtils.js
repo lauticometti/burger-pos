@@ -3,12 +3,12 @@ import { SIZE_LABELS } from './eventMenu'
 // Fixed display order for cart, tickets, and detail views
 const ITEM_SORT_ORDER = {
   // burgers by id
-  salsa: [1, 1], american: [1, 2], bbqueen: [1, 3], smoklahoma: [1, 4],
-  // extras burger_ya
-  papas: [2, 1], dip: [3, 1], coca_600: [4, 1], coca_225: [4, 2],
-  // drinks_t6
-  fernet: [5, 1], caipiroska: [5, 2], tropicana: [5, 3],
-  cherry: [5, 4], gin_tonic: [5, 5], gin_frutos: [5, 6],
+  cheese: [1, 1], lautiboom: [1, 2], smoklahoma: [1, 3], doritos: [1, 4],
+  // extras/bebidas/cervezas burger_ya
+  papas: [3, 1], dip: [3, 2], coca_600: [4, 1], coca_225: [4, 2],
+  heineken: [4, 3], corona: [4, 4], stella: [4, 5],
+  // combos tragos drinks_t6
+  combo_1trago: [5, 1], combo_2tragos: [5, 2],
 }
 
 function getItemSortKey(item) {
@@ -99,7 +99,25 @@ export function buildCartItem(product, size, customizations = null) {
       customizations: customizations ?? { extras: [], removedIngredients: [] },
     }
   }
-  // drink or extra
+  if (product.category === 'combo_trago') {
+    // customizations.selections = ['Fernet', 'Caipiroska'] etc.
+    return {
+      cartItemId,
+      id: product.id,
+      name: product.name,
+      btnLabel: product.btnLabel ?? product.name,
+      area: product.area,
+      category: product.category,
+      selectCount: product.selectCount,
+      size: null,
+      sizeLabel: null,
+      unitPrice: product.price,
+      totalPrice: product.price,
+      quantity: 1,
+      customizations: customizations ?? { selections: [] },
+    }
+  }
+  // drink, extra, cerveza
   const qty = product.qty ?? 1
   return {
     cartItemId,
@@ -117,17 +135,24 @@ export function buildCartItem(product, size, customizations = null) {
   }
 }
 
-// Returns display name: "Burger de la salsa simple" (strips "c/ papas", appends sizeLabel lowercase)
-// For drinks/extras, returns just the product name (not btnLabel which may include qty prefix like "2 Fernet")
+// Returns display name. For combo_trago, appends the selected varieties.
 export function getDisplayName(item) {
   const baseName = item.name.replace(' c/ papas', '')
   if (item.sizeLabel) return `${baseName} ${item.sizeLabel.toLowerCase()}`
+  if (item.category === 'combo_trago') {
+    const sels = item.customizations?.selections ?? []
+    if (sels.length > 0) return `${baseName}: ${sels.join(' + ')}`
+  }
   return baseName
 }
 
 // Grouping key for cart display. forceUngroup = item is displayed individually
 export function getCartGroupKey(item) {
   if (item.forceUngroup) return `_ungrouped_${item.cartItemId}`
+  if (item.category === 'combo_trago') {
+    // Each combo with different selections is its own group
+    return JSON.stringify({ id: item.id, selections: [...(item.customizations?.selections ?? [])].sort() })
+  }
   if (item.category !== 'burger') return item.id
   return JSON.stringify({
     id: item.id, size: item.size,

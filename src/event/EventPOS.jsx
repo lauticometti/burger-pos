@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EVENT_BURGERS, EVENT_EXTRAS_BURGER_YA, EVENT_DRINKS_T6, SIZE_LABELS } from './eventMenu'
 import { buildCartItem, calcEventSubtotals, getNextOrderNumber, sanitizeEventOrder, determineStatuses } from './eventUtils'
 import { EventCart } from './EventCart'
-import { EventModal } from './EventModal'
+import { EventDrinkModal } from './EventDrinkModal'
 import { printEventTickets } from './eventPrinting'
 
 const SHIFT_LABELS = { midday: 'Mediodía', night: 'Noche' }
@@ -23,28 +23,21 @@ export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
   const [printing, setPrinting] = useState(false)
   const [cancelTokenRef] = useState({ current: null })
   const [validationError, setValidationError] = useState('')
-  const [shiftModal, setShiftModal] = useState(false)
-  const [pendingShift, setPendingShift] = useState(null)
-
-  function handleShiftChange(newShift) {
-    if (newShift === shift) return
-    if (cart.length > 0) {
-      setPendingShift(newShift)
-      setShiftModal(true)
-    } else {
-      setShift(newShift)
-    }
-  }
-
-  function confirmShiftChange() {
-    setShift(pendingShift)
-    setCart([])
-    setShiftModal(false)
-    setPendingShift(null)
-  }
+  const [drinkModal, setDrinkModal] = useState(null) // product def for combo_trago
 
   function addToCart(product, size = null) {
+    if (product.category === 'combo_trago') {
+      setDrinkModal(product)
+      return
+    }
     setCart(prev => [...prev, buildCartItem(product, size)])
+  }
+
+  function handleDrinkModalSave({ selections }) {
+    if (!drinkModal) return
+    const item = buildCartItem(drinkModal, null, { selections })
+    setCart(prev => [...prev, item])
+    setDrinkModal(null)
   }
 
   async function handleSave() {
@@ -77,7 +70,7 @@ export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
 
       const orderData = sanitizeEventOrder({
         eventMode: true,
-        eventName: 'burger_day_2026',
+        eventName: 'birthday',
         eventShift: shift,
         eventShiftLabel: SHIFT_LABELS[shift],
         eventOrderNumber: nextNum,
@@ -140,24 +133,9 @@ export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
       {/* Products panel */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
 
-        {/* Shift selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          {Object.entries(SHIFT_LABELS).map(([key, label]) => (
-            <button
-              key={key}
-              onDoubleClick={() => handleShiftChange(key)}
-              title="Doble click para cambiar de turno"
-              style={{
-                ...BTN.base,
-                padding: '6px 14px', fontSize: '13px',
-                background: shift === key ? 'rgba(255,198,42,0.15)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${shift === key ? 'rgba(255,198,42,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                color: shift === key ? '#FFC62A' : 'rgba(245,245,245,0.6)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Shift indicator — birthday event runs night-only, selector hidden */}
+        <div style={{ marginBottom: '12px', fontSize: '12px', color: 'rgba(245,245,245,0.45)', fontWeight: 600 }}>
+          Turno: <span style={{ color: '#FFC62A' }}>{SHIFT_LABELS[shift]}</span>
         </div>
 
         {/* Burgers section */}
@@ -227,25 +205,28 @@ export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
           ))}
         </div>
 
-        {/* Drinks section */}
+        {/* Drinks (Tragos combos) section */}
         <div style={{ marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'rgba(245,245,245,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Tragos — DrinksT6
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
           {EVENT_DRINKS_T6.map(item => (
             <button
               key={item.id}
               onClick={() => addToCart(item)}
               style={{
                 ...BTN.base,
-                padding: '12px 8px', fontSize: '13px', textAlign: 'center',
-                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+                padding: '14px 10px', fontSize: '13px', textAlign: 'center',
+                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.3)',
                 color: '#c4b5fd', lineHeight: 1.3,
               }}
             >
-              <div style={{ fontWeight: 700 }}>{item.btnLabel ?? item.name}</div>
+              <div style={{ fontWeight: 700 }}>{item.name}</div>
               <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '3px' }}>
-                ${item.price.toLocaleString()}
+                ${item.price.toLocaleString('es-AR')}
+              </div>
+              <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '2px' }}>
+                → elegir variedad
               </div>
             </button>
           ))}
@@ -289,15 +270,11 @@ export function EventPOS({ orders, saveEventOrder, user, shift, setShift }) {
         />
       </div>
 
-      {shiftModal && (
-        <EventModal
-          title="Cambiar turno"
-          body={`Tenés un pedido en curso. Si cambiás a ${SHIFT_LABELS[pendingShift] ?? ''} se va a vaciar el carrito.`}
-          onClose={() => setShiftModal(false)}
-          buttons={[
-            { label: 'Cancelar', onClick: () => setShiftModal(false) },
-            { label: 'Cambiar y vaciar', danger: true, onClick: confirmShiftChange },
-          ]}
+      {drinkModal && (
+        <EventDrinkModal
+          product={drinkModal}
+          onSave={handleDrinkModalSave}
+          onClose={() => setDrinkModal(null)}
         />
       )}
     </div>

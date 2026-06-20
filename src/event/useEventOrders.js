@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
-const EVENT_NAME = 'burger_day_2026'
+const EVENT_NAME = 'birthday'
 
 // Query que requiere índice compuesto en Firestore:
 // Collection: orders

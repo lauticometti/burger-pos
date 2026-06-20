@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { collection, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
-import { EVENT_BURGERS, EVENT_EXTRAS_BURGER_YA, EVENT_DRINKS_T6, BURGER_ADDONS, SIZE_LABELS } from './eventMenu'
+import { EVENT_BURGERS, EVENT_EXTRAS_BURGER_YA, EVENT_DRINKS_T6, DRINK_VARIETIES, BURGER_ADDONS, SIZE_LABELS } from './eventMenu'
 
 function fmt(n) { return '$' + Number(n ?? 0).toLocaleString('es-AR') }
 
@@ -45,7 +45,7 @@ function DangerZone() {
       const q = query(
         collection(db, 'orders'),
         where('eventMode', '==', true),
-        where('eventName', '==', 'burger_day_2026')
+        where('eventName', '==', 'birthday')
       )
       const snap = await getDocs(q)
       const total = snap.docs.length
@@ -119,7 +119,7 @@ function DangerZone() {
             {status === null && (
               <>
                 <div style={{ fontSize: '13px', color: 'rgba(245,245,245,0.7)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Esto va a borrar <strong style={{ color: '#fff' }}>TODOS los pedidos del evento Burger Day 2026</strong>.
+                  Esto va a borrar <strong style={{ color: '#fff' }}>TODOS los pedidos del evento Cumple 2 Años</strong>.
                   No borra pedidos normales, staffLedger ni ninguna otra colección.
                 </div>
                 <div style={{ fontSize: '12px', color: 'rgba(245,245,245,0.5)', marginBottom: '8px' }}>
@@ -286,7 +286,7 @@ export function EventStats({ orders }) {
   return (
     <div style={{ padding: '16px', maxWidth: '760px', margin: '0 auto' }}>
       <div style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
-        Estadísticas — Burger Day
+        Estadísticas — Cumple 2 Años
       </div>
 
       {/* Shift filter */}
@@ -388,10 +388,44 @@ export function EventStats({ orders }) {
       </Section>
 
       <Section title="Tragos — DrinksT6">
-        {EVENT_DRINKS_T6.map(item => {
-          const items = byId(item.id)
-          return <StatRow key={item.id} label={item.name} qty={items.length} total={sumTotal(items)} />
-        })}
+        {(() => {
+          // Revenue rows per combo type
+          const comboRows = EVENT_DRINKS_T6.map(item => {
+            const items = byId(item.id)
+            return <StatRow key={item.id} label={item.name} qty={items.length} total={sumTotal(items)} />
+          })
+
+          // Count individual variety pours from combo_trago selections
+          const varietyCounts = {}
+          for (const v of DRINK_VARIETIES) varietyCounts[v.name] = 0
+          for (const item of allItems.filter(i => i.category === 'combo_trago')) {
+            for (const sel of (item.customizations?.selections ?? [])) {
+              if (sel in varietyCounts) varietyCounts[sel]++
+            }
+          }
+          const totalPours = Object.values(varietyCounts).reduce((s, n) => s + n, 0)
+
+          return (
+            <>
+              {comboRows}
+              <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0 4px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(245,245,245,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px 6px' }}>
+                  Tragos preparados
+                </div>
+                {DRINK_VARIETIES.map(v => (
+                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 10px', fontSize: '13px' }}>
+                    <span style={{ color: 'rgba(245,245,245,0.8)' }}>{v.name}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text)' }}>{varietyCounts[v.name]}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px 2px', fontSize: '13px', borderTop: '1px solid var(--line)', marginTop: '4px' }}>
+                  <span style={{ color: 'rgba(245,245,245,0.5)', fontWeight: 600 }}>Total tragos preparados</span>
+                  <span style={{ fontWeight: 800, color: '#c4b5fd' }}>{totalPours}</span>
+                </div>
+              </div>
+            </>
+          )
+        })()}
       </Section>
 
       <DangerZone />

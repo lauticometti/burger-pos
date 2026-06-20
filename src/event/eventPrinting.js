@@ -65,10 +65,7 @@ function printViaIframe(html) {
 }
 
 function getEventBranding() {
-  const now = new Date()
-  const endHappyUTC = new Date('2026-05-29T20:00:00Z')
-  if (now < endHappyUTC) return 'HAPPY BURGER DAY'
-  return 'BURGER YA x DRINKST6'
+  return 'BURGER YA — CUMPLE 2 AÑOS'
 }
 
 function fmtPrice(n) {
@@ -136,16 +133,62 @@ function renderNonBurgerBurgerYaLines(items, showPrices) {
 }
 
 function renderDrinksLines(items, showPrices) {
-  const counts = {}
+  // combo_trago items with different selections must NOT be merged
+  const groups = {}
   for (const item of items.filter(i => i.area === 'drinks_t6')) {
-    if (!counts[item.id]) counts[item.id] = { name: item.name, qty: 0, total: 0 }
-    counts[item.id].qty += (item.quantity ?? 1)
-    counts[item.id].total += item.totalPrice
+    let key
+    if (item.category === 'combo_trago') {
+      const sels = [...(item.customizations?.selections ?? [])].sort().join('|')
+      key = `${item.id}::${sels}`
+    } else {
+      key = item.id
+    }
+    if (!groups[key]) {
+      const sels = item.customizations?.selections ?? []
+      // combo_trago: show only selections (no commercial name like "1 trago" / "2 tragos")
+      const displayLabel = item.category === 'combo_trago' && sels.length > 0
+        ? sels.join(' + ')
+        : item.name
+      groups[key] = { displayLabel, qty: 0, total: 0 }
+    }
+    groups[key].qty += (item.quantity ?? 1)
+    groups[key].total += item.totalPrice
   }
-  return Object.values(counts).map(d => showPrices
-    ? `<div class="row"><span>${d.qty} ${d.name}</span><span>${fmtPrice(d.total)}</span></div>`
-    : `<div class="row"><span>${d.qty} ${d.name}</span></div>`
-  ).join('')
+  return Object.values(groups).map(d => {
+    const prefix = d.qty > 1 ? `${d.qty}× ` : ''
+    return showPrices
+      ? `<div class="row"><span>${prefix}${d.displayLabel}</span><span>${fmtPrice(d.total)}</span></div>`
+      : `<div class="row"><span>${prefix}${d.displayLabel}</span></div>`
+  }).join('')
+}
+
+// Variante exclusiva para ticket de BARRA:
+// combo_trago → muestra solo las selecciones, sin nombre comercial.
+// Cantidad 1 → omitida. Cantidad >1 → "N× " como prefijo.
+function renderDrinksLinesForBarra(items) {
+  const groups = {}
+  for (const item of items.filter(i => i.area === 'drinks_t6')) {
+    let key
+    if (item.category === 'combo_trago') {
+      const sels = [...(item.customizations?.selections ?? [])].sort().join('|')
+      key = `${item.id}::${sels}`
+    } else {
+      key = item.id
+    }
+    if (!groups[key]) {
+      const sels = item.customizations?.selections ?? []
+      // For barra: combo_trago shows only selections, other items show name
+      const barraLabel = item.category === 'combo_trago' && sels.length > 0
+        ? sels.join(' + ')
+        : item.name
+      groups[key] = { barraLabel, qty: 0 }
+    }
+    groups[key].qty += (item.quantity ?? 1)
+  }
+  return Object.values(groups).map(d => {
+    const prefix = d.qty > 1 ? `${d.qty}× ` : ''
+    return `<div class="row"><span>${prefix}${d.barraLabel}</span></div>`
+  }).join('')
 }
 
 function buildEventTicketHtml(order, type) {
@@ -228,7 +271,7 @@ function buildEventTicketHtml(order, type) {
     </div>`
 
   } else if (type === 'barra') {
-    const drinkLines = renderDrinksLines(allItems, false)
+    const drinkLines = renderDrinksLinesForBarra(allItems)
     body = `<div class="ticket">
       <div class="section-title">BARRA</div>
       <div class="subtitle" style="font-size:11px;">${branding}</div>
