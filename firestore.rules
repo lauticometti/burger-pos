@@ -1,9 +1,93 @@
-rules_version = '3';
+rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // POS sin autenticación - app interna del local
-    match /orders/{document=**} {
-      allow read, write: if true;
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // orders: read/create/update para cualquier usuario autenticado (POS + Caja).
+    // delete solo para pedidos de evento — condición heredada del POS de evento.
+    match /orders/{orderId} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if signedIn()
+        && resource.data.eventMode == true
+        && resource.data.eventName == 'birthday';
+    }
+
+    // Staff/Payroll — sin cambios, acceso restringido a flujos propios
+    match /staffMembers/{staffId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /staffLedger/{ledgerId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    // Módulo financiero interno — Caja
+    match /accounts/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /paymentMethods/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /expenseCategories/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /suppliers/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /cashClosures/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /financialMovements/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /config/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /cashShifts/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /cashShifts/{shiftId}/auditEvents/{eventId} {
+      allow read, create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /shiftCashEvents/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /shiftTransferVerifications/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    // Denegar todo lo no declarado explícitamente
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
